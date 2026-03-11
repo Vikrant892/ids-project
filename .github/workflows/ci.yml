@@ -1,0 +1,41 @@
+name: IDS CI Pipeline
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+
+jobs:
+  lint:
+    name: Lint (ruff)
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.11" }
+      - run: pip install ruff
+      - run: ruff check src/ tests/ --ignore E501
+
+  test:
+    name: Test (pytest)
+    runs-on: windows-latest
+    needs: lint
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.11" }
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+      - name: Create directories
+        run: |
+          mkdir -p db logs data/raw data/processed data/baselines src/ml/models
+        shell: bash
+      - name: Run tests
+        run: |
+          python -m pytest tests/unit/ tests/simulation/ -v --cov=src --cov-report=term-missing
+        env:
+          PYTHONPATH: .
+          DB_PATH: db/test_ids.sqlite
+          CAPTURE_MODE: pcap
+          LOG_LEVEL: WARNING

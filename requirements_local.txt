@@ -1,0 +1,35 @@
+# Core networking
+scapy==2.6.1
+psutil==6.1.1
+
+# ML — versions compatible with Python 3.13
+scikit-learn==1.6.1
+numpy==2.2.3
+pandas==2.2.3
+torch==2.6.0
+joblib==1.4.2
+scipy==1.15.2
+
+# Data
+pyarrow==19.0.1
+
+# Dashboard
+streamlit==1.43.2
+plotly==6.0.1
+
+# Alerts
+requests==2.32.3
+python-dotenv==1.0.1
+
+# Utils
+structlog==25.1.0
+rich==13.9.4
+
+# Testing
+pytest==8.3.5
+pytest-cov==6.0.0
+pytest-mock==3.14.0
+faker==37.1.0
+
+# Linting
+ruff==0.9.10

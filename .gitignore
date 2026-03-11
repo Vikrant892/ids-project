@@ -1,0 +1,35 @@
+# Secrets
+.env
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+venv/
+.venv/
+*.egg-info/
+dist/
+build/
+.coverage
+htmlcov/
+.pytest_cache/
+
+# Runtime data
+db/*.sqlite
+logs/
+data/raw/
+data/processed/
+data/baselines/
+
+# ML models (large binary files)
+src/ml/models/*.joblib
+src/ml/models/*.pt
+src/ml/models/*.pkl
+
+# PCAP (can be large)
+*.pcap
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
