@@ -9,7 +9,7 @@ Download from https://python.org — check "Add to PATH" during install.
 
 ### 2. Clone repo
 ```
-git clone https://github.com/YOUR_USERNAME/ids-project.git
+git clone https://github.com/Vikrant892/ids-project.git
 cd ids-project
 ```
 
