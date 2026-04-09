@@ -3,390 +3,259 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>NetSentinel | Intrusion Detection System</title>
+<title>NetSentinel - Network Intrusion Detection System</title>
 <style>
-*{margin:0;padding:0;box-sizing:border-box}
-@import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Share+Tech+Mono&display=swap');
-:root{--bg:#0b0e11;--surface:#111518;--surface2:#181d22;--border:#252b33;--green:#00e676;--green-dim:#00a152;--red:#ff5252;--red-dim:#d32f2f;--blue:#448aff;--yellow:#ffd740;--orange:#ff9100;--text:#cfd8dc;--text-dim:#607d8b;--cyan:#26c6da}
-body{background:var(--bg);color:var(--text);font-family:'Rajdhani','Share Tech Mono',sans-serif;min-height:100vh;overflow-x:hidden}
-.dashboard{display:grid;grid-template-columns:1fr;gap:16px;max-width:1250px;margin:0 auto;padding:16px}
-/* Header + ticker */
-.top-bar{display:flex;align-items:center;justify-content:space-between;padding:12px 0;flex-wrap:wrap;gap:10px}
-.logo-area{display:flex;align-items:center;gap:12px}
-.logo-hex{width:42px;height:42px;background:linear-gradient(135deg,var(--green),var(--blue));clip-path:polygon(50% 0%,95% 25%,95% 75%,50% 100%,5% 75%,5% 25%);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:0.9rem;color:var(--bg)}
-.logo-area h1{font-size:1.5rem;font-weight:700;letter-spacing:2px}
-.logo-area h1 span{color:var(--green)}
-.logo-area .sub{font-size:0.7rem;color:var(--text-dim);letter-spacing:3px;text-transform:uppercase}
-.system-status{display:flex;align-items:center;gap:8px;background:rgba(0,230,118,0.08);border:1px solid rgba(0,230,118,0.25);padding:8px 16px;border-radius:6px;font-size:0.8rem;font-weight:600;color:var(--green);letter-spacing:1px}
-.pulse{width:10px;height:10px;background:var(--green);border-radius:50%;animation:pulse 1.5s infinite}
-@keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(0,230,118,0.4)}50%{box-shadow:0 0 0 10px rgba(0,230,118,0)}}
-/* Threat ticker */
-.ticker-wrap{width:100%;overflow:hidden;background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:8px 0;margin:4px 0}
-.ticker{display:flex;animation:scroll 40s linear infinite;white-space:nowrap}
-@keyframes scroll{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}
-.ticker-item{display:inline-flex;align-items:center;gap:6px;padding:0 24px;font-size:0.75rem;font-family:'Share Tech Mono',monospace}
-.ticker-item .sev{display:inline-block;width:8px;height:8px;border-radius:2px}
-.sev-crit{background:var(--red)}.sev-high{background:var(--orange)}.sev-med{background:var(--yellow)}.sev-low{background:var(--blue)}
-/* Stats row */
-.stats-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px}
-.stat-box{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:16px;text-align:center;position:relative}
-.stat-box .val{font-size:1.8rem;font-weight:700;font-family:'Share Tech Mono',monospace}
-.stat-box .val.green{color:var(--green)}.stat-box .val.red{color:var(--red)}.stat-box .val.blue{color:var(--blue)}.stat-box .val.yellow{color:var(--yellow)}
-.stat-box .lbl{font-size:0.65rem;color:var(--text-dim);text-transform:uppercase;letter-spacing:2px;margin-top:4px}
-/* Main grid */
-.main-grid{display:grid;grid-template-columns:2fr 1fr;gap:16px}
-@media(max-width:900px){.main-grid{grid-template-columns:1fr}}
-.panel{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:18px;position:relative;overflow:hidden}
-.panel-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
-.panel-title{font-size:0.85rem;font-weight:600;display:flex;align-items:center;gap:8px;letter-spacing:1px;text-transform:uppercase}
-.panel-title .dot{width:8px;height:8px;border-radius:50%}
-.panel-badge{font-size:0.65rem;color:var(--text-dim);font-family:'Share Tech Mono',monospace}
-/* Traffic chart */
-.chart-container{height:160px;position:relative;margin:10px 0}
-.chart-svg{width:100%;height:100%}
-.chart-line{fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
-.chart-area{opacity:0.1}
-.chart-grid line{stroke:#1a2030;stroke-width:0.5}
-/* Alert table */
-.alert-table{width:100%;border-collapse:collapse;font-size:0.78rem}
-.alert-table th{text-align:left;color:var(--text-dim);font-weight:500;padding:8px 10px;border-bottom:1px solid var(--border);font-size:0.65rem;text-transform:uppercase;letter-spacing:1.5px}
-.alert-table td{padding:8px 10px;border-bottom:1px solid rgba(37,43,51,0.5);font-family:'Share Tech Mono',monospace;font-size:0.75rem}
-.alert-table tr{transition:background 0.2s}
-.alert-table tr:hover td{background:rgba(68,138,255,0.03)}
-.sev-badge{padding:2px 8px;border-radius:3px;font-size:0.65rem;font-weight:600;text-transform:uppercase}
-.sev-badge.critical{background:rgba(255,82,82,0.15);color:var(--red)}
-.sev-badge.high{background:rgba(255,145,0,0.15);color:var(--orange)}
-.sev-badge.medium{background:rgba(255,215,64,0.15);color:var(--yellow)}
-.sev-badge.low{background:rgba(68,138,255,0.15);color:var(--blue)}
-/* Pie chart */
-.pie-container{display:flex;flex-direction:column;align-items:center;gap:14px}
-.pie-svg{width:180px;height:180px}
-.pie-legend{width:100%}
-.legend-item{display:flex;align-items:center;gap:8px;padding:5px 0;font-size:0.75rem}
-.legend-color{width:12px;height:12px;border-radius:3px;flex-shrink:0}
-.legend-pct{margin-left:auto;font-weight:600;font-family:'Share Tech Mono',monospace}
-/* Network topology */
-.topo-svg{width:100%;max-height:200px}
-.topo-node{transition:r 0.2s}
-.topo-node:hover{r:10}
-.topo-label{font-family:'Share Tech Mono',monospace;font-size:8px;fill:var(--text-dim)}
-.topo-link{stroke:#1e2a3a;stroke-width:1;opacity:0.6}
-.topo-packet{fill:var(--green);opacity:0.8}
-/* Footer */
-.footer{text-align:center;padding:24px 0 12px;font-size:0.72rem;color:var(--text-dim)}
-.footer a{color:var(--green);text-decoration:none}.footer a:hover{text-decoration:underline}
-/* Bottom grid */
-.bottom-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
-@media(max-width:700px){.bottom-grid{grid-template-columns:1fr}}
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+:root {
+  --bg: #000000; --text: #F5F5F7; --secondary: #86868B; --accent: #2997FF;
+  --card-bg: rgba(28,28,30,0.8); --border: rgba(255,255,255,0.08);
+  --font: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Inter', system-ui, sans-serif;
+  --radius-card: 18px; --radius-input: 12px; --radius-pill: 100px;
+  --green: #30D158; --red: #FF453A; --yellow: #FFD60A; --orange: #FF9F0A;
+}
+body { background: var(--bg); color: var(--text); font-family: var(--font); line-height: 1.6; -webkit-font-smoothing: antialiased; }
+a { color: var(--accent); text-decoration: none; transition: opacity 0.3s ease; }
+a:hover { opacity: 0.8; }
+.container { max-width: 1080px; margin: 0 auto; padding: 0 24px; }
+
+header { padding: 18px 0; border-bottom: 1px solid var(--border); position: sticky; top: 0; background: rgba(0,0,0,0.85); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); z-index: 100; }
+.header-inner { display: flex; justify-content: space-between; align-items: center; }
+.logo { font-size: 20px; font-weight: 600; letter-spacing: -0.02em; }
+.logo span { color: var(--accent); }
+.gh-link { font-size: 14px; color: var(--secondary); padding: 8px 20px; border: 1px solid var(--border); border-radius: var(--radius-pill); transition: all 0.3s ease; }
+.gh-link:hover { color: var(--text); border-color: rgba(255,255,255,0.25); }
+
+.hero { text-align: center; padding: 80px 0 48px; }
+.hero h1 { font-size: clamp(36px, 5.5vw, 56px); font-weight: 700; letter-spacing: -0.03em; margin-bottom: 12px; }
+.hero p { font-size: 19px; color: var(--secondary); max-width: 540px; margin: 0 auto 28px; }
+.tech-tags { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; }
+.tech-tag { font-size: 12px; color: var(--secondary); padding: 6px 14px; border: 1px solid var(--border); border-radius: var(--radius-pill); background: var(--card-bg); }
+
+.stats-bar { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; padding: 40px 0; }
+.stat-card { background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius-card); padding: 24px; text-align: center; backdrop-filter: blur(20px); }
+.stat-value { font-size: 32px; font-weight: 700; letter-spacing: -0.02em; }
+.stat-label { font-size: 13px; color: var(--secondary); margin-top: 4px; }
+
+.section { padding: 40px 0; }
+.section-title { font-size: 24px; font-weight: 600; letter-spacing: -0.02em; margin-bottom: 20px; }
+.card { background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius-card); padding: 32px; backdrop-filter: blur(20px); transition: border-color 0.3s ease; }
+.card:hover { border-color: rgba(255,255,255,0.15); }
+
+.badge { padding: 4px 12px; border-radius: var(--radius-pill); font-size: 12px; font-weight: 500; display: inline-block; }
+.badge.benign { background: rgba(48,209,88,0.12); color: var(--green); }
+.badge.malicious { background: rgba(255,69,58,0.12); color: var(--red); }
+
+/* Live monitor */
+.monitor-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 12px; }
+.live-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--red); display: inline-block; margin-right: 8px; animation: pulse 1.5s ease infinite; }
+.live-label { font-size: 13px; color: var(--secondary); display: flex; align-items: center; }
+.monitor-table { width: 100%; border-collapse: collapse; }
+.monitor-table th, .monitor-table td { padding: 10px 14px; text-align: left; font-size: 13px; border-bottom: 1px solid var(--border); }
+.monitor-table th { color: var(--secondary); font-weight: 500; font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; }
+.monitor-table td { font-family: 'SF Mono', 'Fira Code', monospace; font-size: 12px; }
+.monitor-scroll { max-height: 320px; overflow-y: auto; }
+.monitor-scroll::-webkit-scrollbar { width: 4px; }
+.monitor-scroll::-webkit-scrollbar-track { background: transparent; }
+.monitor-scroll::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 4px; }
+
+.btn { display: inline-flex; align-items: center; padding: 10px 24px; background: var(--accent); color: #fff; border: none; border-radius: var(--radius-pill); font-family: var(--font); font-size: 14px; font-weight: 500; cursor: pointer; transition: all 0.3s ease; }
+.btn:hover { filter: brightness(1.15); transform: translateY(-1px); }
+.btn.outline { background: transparent; border: 1px solid var(--border); color: var(--secondary); }
+.btn.outline:hover { border-color: rgba(255,255,255,0.25); color: var(--text); }
+
+/* Feature importance chart */
+.bar-chart { display: flex; flex-direction: column; gap: 12px; }
+.bar-row { display: flex; align-items: center; gap: 12px; }
+.bar-name { font-size: 13px; color: var(--secondary); min-width: 140px; text-align: right; }
+.bar-track { flex: 1; height: 24px; background: rgba(255,255,255,0.04); border-radius: 6px; overflow: hidden; position: relative; }
+.bar-fill { height: 100%; border-radius: 6px; transition: width 1s ease; display: flex; align-items: center; justify-content: flex-end; padding-right: 8px; font-size: 11px; font-weight: 600; }
+.bar-fill.high { background: linear-gradient(90deg, rgba(41,151,255,0.3), rgba(41,151,255,0.7)); color: var(--accent); }
+.bar-fill.mid { background: linear-gradient(90deg, rgba(48,209,88,0.2), rgba(48,209,88,0.5)); color: var(--green); }
+.bar-fill.low { background: linear-gradient(90deg, rgba(134,134,139,0.15), rgba(134,134,139,0.35)); color: var(--secondary); }
+
+.two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+
+/* Detection log */
+.log-table { width: 100%; border-collapse: collapse; }
+.log-table th, .log-table td { padding: 10px 14px; text-align: left; font-size: 13px; border-bottom: 1px solid var(--border); }
+.log-table th { color: var(--secondary); font-weight: 500; font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; }
+.confidence { font-weight: 600; font-size: 13px; }
+
+footer { padding: 40px 0; border-top: 1px solid var(--border); margin-top: 48px; text-align: center; }
+footer p { font-size: 14px; color: var(--secondary); }
+
+@keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+
+@media (max-width: 768px) {
+  .stats-bar { grid-template-columns: repeat(2, 1fr); }
+  .two-col { grid-template-columns: 1fr; }
+  .bar-name { min-width: 100px; font-size: 11px; }
+  .hero { padding: 48px 0 32px; }
+}
+@media (max-width: 480px) { .stats-bar { grid-template-columns: 1fr; } }
 </style>
 </head>
 <body>
-<div class="dashboard">
-  <div class="top-bar">
-    <div class="logo-area">
-      <div class="logo-hex">NS</div>
-      <div>
-        <h1>Net<span>Sentinel</span></h1>
-        <div class="sub">Intrusion Detection System</div>
+
+<header>
+  <div class="container header-inner">
+    <div class="logo">Net<span>Sentinel</span></div>
+    <a href="https://github.com/Vikrant892/ids-project" target="_blank" rel="noopener" class="gh-link">GitHub</a>
+  </div>
+</header>
+
+<main class="container">
+  <section class="hero">
+    <h1>Network Intrusion Detection System</h1>
+    <p>Machine-learning-powered network traffic analysis with real-time classification of benign and malicious flows.</p>
+    <div class="tech-tags">
+      <span class="tech-tag">Python</span><span class="tech-tag">Scikit-learn</span><span class="tech-tag">Pandas</span><span class="tech-tag">Streamlit</span>
+    </div>
+  </section>
+
+  <section class="stats-bar">
+    <div class="stat-card"><div class="stat-value" style="color:var(--accent)" id="statPackets">0</div><div class="stat-label">Packets Analyzed</div></div>
+    <div class="stat-card"><div class="stat-value" style="color:var(--red)" id="statThreats">0</div><div class="stat-label">Threats Detected</div></div>
+    <div class="stat-card"><div class="stat-value" style="color:var(--green)" id="statAccuracy">0%</div><div class="stat-label">Model Accuracy</div></div>
+    <div class="stat-card"><div class="stat-value" style="color:var(--orange)" id="statFPR">0%</div><div class="stat-label">False Positive Rate</div></div>
+  </section>
+
+  <section class="section">
+    <div class="card">
+      <div class="monitor-header">
+        <h2 class="section-title" style="margin-bottom:0">Live Network Traffic</h2>
+        <div style="display:flex;gap:10px;align-items:center;">
+          <span class="live-label"><span class="live-dot"></span>Monitoring</span>
+          <button class="btn outline" id="toggleBtn">Pause</button>
+        </div>
+      </div>
+      <div class="monitor-scroll" id="monitorScroll">
+        <table class="monitor-table">
+          <thead><tr><th>Source IP</th><th>Dest IP</th><th>Port</th><th>Protocol</th><th>Classification</th><th>Confidence</th></tr></thead>
+          <tbody id="monitorBody"></tbody>
+        </table>
       </div>
     </div>
-    <div class="system-status"><span class="pulse"></span> SYSTEM: MONITORING</div>
-  </div>
+  </section>
 
-  <div class="ticker-wrap">
-    <div class="ticker" id="ticker"></div>
-  </div>
-
-  <div class="stats-row">
-    <div class="stat-box"><div class="val green" id="packetsCount">2,847,391</div><div class="lbl">Packets Analyzed</div></div>
-    <div class="stat-box"><div class="val red">342</div><div class="lbl">Alerts Today</div></div>
-    <div class="stat-box"><div class="val blue">23</div><div class="lbl">Active Connections</div></div>
-    <div class="stat-box"><div class="val yellow">99.7%</div><div class="lbl">Uptime</div></div>
-    <div class="stat-box"><div class="val green">4</div><div class="lbl">Models Active</div></div>
-  </div>
-
-  <div class="main-grid">
-    <div>
-      <div class="panel">
-        <div class="panel-head">
-          <div class="panel-title"><span class="dot" style="background:var(--green)"></span>Network Traffic (Live)</div>
-          <div class="panel-badge" id="trafficRate">1,247 pkt/s</div>
-        </div>
-        <div class="chart-container">
-          <svg class="chart-svg" id="trafficChart" viewBox="0 0 600 150" preserveAspectRatio="none"></svg>
-        </div>
-      </div>
-
-      <div class="panel" style="margin-top:16px">
-        <div class="panel-head">
-          <div class="panel-title"><span class="dot" style="background:var(--red)"></span>Recent Alerts</div>
-          <div class="panel-badge">Last 24h</div>
-        </div>
-        <div style="overflow-x:auto">
-          <table class="alert-table">
-            <thead><tr><th>Time</th><th>Source IP</th><th>Attack Type</th><th>Severity</th><th>Status</th></tr></thead>
-            <tbody id="alertTableBody"></tbody>
-          </table>
-        </div>
+  <section class="section two-col">
+    <div class="card">
+      <h2 class="section-title">Feature Importance</h2>
+      <p style="font-size:14px;color:var(--secondary);margin-bottom:20px">Random Forest top features for flow classification</p>
+      <div class="bar-chart" id="barChart"></div>
+    </div>
+    <div class="card">
+      <h2 class="section-title">Detection Log</h2>
+      <div style="overflow-x:auto;max-height:380px;overflow-y:auto;">
+        <table class="log-table">
+          <thead><tr><th>Time</th><th>Source</th><th>Classification</th><th>Confidence</th></tr></thead>
+          <tbody id="logBody"></tbody>
+        </table>
       </div>
     </div>
+  </section>
+</main>
 
-    <div>
-      <div class="panel">
-        <div class="panel-head">
-          <div class="panel-title"><span class="dot" style="background:var(--yellow)"></span>Attack Distribution</div>
-        </div>
-        <div class="pie-container">
-          <svg class="pie-svg" viewBox="0 0 200 200" id="pieChart"></svg>
-          <div class="pie-legend" id="pieLegend"></div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <div class="bottom-grid">
-    <div class="panel">
-      <div class="panel-head">
-        <div class="panel-title"><span class="dot" style="background:var(--blue)"></span>Network Topology</div>
-      </div>
-      <svg class="topo-svg" id="topoSvg" viewBox="0 0 400 200"></svg>
-    </div>
-    <div class="panel">
-      <div class="panel-head">
-        <div class="panel-title"><span class="dot" style="background:var(--cyan)"></span>Detection Models</div>
-      </div>
-      <div style="font-size:0.78rem">
-        <div style="display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border)">
-          <span>Random Forest</span>
-          <span style="color:var(--green);font-family:'Share Tech Mono',monospace">98.2% acc</span>
-        </div>
-        <div style="display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border)">
-          <span>XGBoost</span>
-          <span style="color:var(--green);font-family:'Share Tech Mono',monospace">97.8% acc</span>
-        </div>
-        <div style="display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border)">
-          <span>Deep Neural Network</span>
-          <span style="color:var(--green);font-family:'Share Tech Mono',monospace">96.5% acc</span>
-        </div>
-        <div style="display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border)">
-          <span>LSTM Autoencoder</span>
-          <span style="color:var(--yellow);font-family:'Share Tech Mono',monospace">94.1% acc</span>
-        </div>
-        <div style="display:flex;justify-content:space-between;padding:10px 0">
-          <span>Ensemble (Active)</span>
-          <span style="color:var(--green);font-weight:700;font-family:'Share Tech Mono',monospace">99.1% acc</span>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <footer class="footer">
-    <a href="https://github.com/Vikrant892/ids-project" target="_blank">GitHub Repository</a>
-    &nbsp;&middot;&nbsp; Built by Vikrant Sharma
-  </footer>
-</div>
+<footer><div class="container"><p>Built by Vikrant Sharma</p></div></footer>
 
 <script>
-// Threat ticker
-const threatFeed=[
-  {sev:'crit',text:'CVE-2024-3094: XZ Utils backdoor detected on 10.0.2.15'},
-  {sev:'high',text:'Brute force attempt from 185.220.101.34 (Tor exit node)'},
-  {sev:'med',text:'Port scan detected from 45.33.32.156 targeting ports 22,80,443,8080'},
-  {sev:'crit',text:'SQL injection attempt on /api/login from 192.168.1.105'},
-  {sev:'low',text:'DNS query to known C2 domain: malware-update.xyz'},
-  {sev:'high',text:'DDoS SYN flood from botnet cluster 103.x.x.0/24'},
-  {sev:'med',text:'Unauthorized SNMP access attempt from 10.0.3.22'},
-  {sev:'crit',text:'Reverse shell connection attempt detected on port 4444'},
-  {sev:'high',text:'Credential stuffing attack: 500+ failed logins from 91.134.x.x'},
-  {sev:'low',text:'Unusual outbound traffic spike to 8.8.4.4:53 (possible DNS exfil)'},
-  {sev:'med',text:'ARP spoofing detected on VLAN 10 from MAC aa:bb:cc:dd:ee:ff'},
-  {sev:'high',text:'Lateral movement detected: SMB relay from 10.0.1.50 to 10.0.1.55'},
-];
-function buildTicker(){
-  const t=document.getElementById('ticker');
-  const items=[...threatFeed,...threatFeed];
-  t.innerHTML=items.map(i=>`<span class="ticker-item"><span class="sev sev-${i.sev}"></span>${i.text}</span>`).join('');
-}
-buildTicker();
-
-// Alert table
-const attacks=['DDoS SYN Flood','Port Scan','Brute Force SSH','SQL Injection','XSS Attempt','DNS Tunneling','Reverse Shell','ARP Spoofing','Credential Stuffing','ICMP Flood'];
-const severities=['critical','high','medium','low'];
-const statuses=['Blocked','Investigating','Mitigated'];
-function randomIP(){return Math.floor(Math.random()*223+1)+'.'+Math.floor(Math.random()*255)+'.'+Math.floor(Math.random()*255)+'.'+Math.floor(Math.random()*255)}
-function buildAlerts(){
-  const tbody=document.getElementById('alertTableBody');
-  const now=new Date();
-  const rows=[];
-  for(let i=0;i<12;i++){
-    const t=new Date(now-Math.random()*86400000);
-    const sev=severities[Math.floor(Math.random()*severities.length)];
-    const atk=attacks[Math.floor(Math.random()*attacks.length)];
-    const st=statuses[Math.floor(Math.random()*statuses.length)];
-    rows.push(`<tr><td>${t.toLocaleTimeString()}</td><td>${randomIP()}</td><td>${atk}</td><td><span class="sev-badge ${sev}">${sev}</span></td><td>${st}</td></tr>`);
+(function () {
+  function animateCount(el, target, suffix) {
+    suffix = suffix || '';
+    var cur = 0, step = Math.ceil(target / 35);
+    var iv = setInterval(function () {
+      cur += step;
+      if (cur >= target) { cur = target; clearInterval(iv); }
+      el.textContent = (Number.isInteger(cur) ? cur.toLocaleString() : cur.toFixed(1)) + suffix;
+    }, 30);
   }
-  tbody.innerHTML=rows.join('');
-}
-buildAlerts();
+  animateCount(document.getElementById('statPackets'), 847293);
+  animateCount(document.getElementById('statThreats'), 4218);
+  animateCount(document.getElementById('statAccuracy'), 97.2, '%');
+  animateCount(document.getElementById('statFPR'), 1.3, '%');
 
-// Pie chart
-const pieData=[
-  {label:'DDoS',pct:35,color:'#ff5252'},
-  {label:'Port Scan',pct:25,color:'#448aff'},
-  {label:'Brute Force',pct:20,color:'#ff9100'},
-  {label:'SQL Injection',pct:10,color:'#ffd740'},
-  {label:'Other',pct:10,color:'#26c6da'}
-];
-function buildPie(){
-  const svg=document.getElementById('pieChart');
-  const legend=document.getElementById('pieLegend');
-  let cumAngle=0;
-  const cx=100,cy=100,r=80;
-  pieData.forEach(d=>{
-    const startAngle=cumAngle*Math.PI/180;
-    cumAngle+=d.pct*3.6;
-    const endAngle=cumAngle*Math.PI/180;
-    const largeArc=d.pct>50?1:0;
-    const x1=cx+r*Math.cos(startAngle-Math.PI/2);
-    const y1=cy+r*Math.sin(startAngle-Math.PI/2);
-    const x2=cx+r*Math.cos(endAngle-Math.PI/2);
-    const y2=cy+r*Math.sin(endAngle-Math.PI/2);
-    const path=document.createElementNS('http://www.w3.org/2000/svg','path');
-    path.setAttribute('d',`M${cx},${cy} L${x1},${y1} A${r},${r} 0 ${largeArc},1 ${x2},${y2} Z`);
-    path.setAttribute('fill',d.color);path.setAttribute('stroke','#0b0e11');path.setAttribute('stroke-width','2');
-    path.style.transition='transform 0.2s';
-    path.addEventListener('mouseenter',()=>path.style.transform='scale(1.05)');
-    path.addEventListener('mouseleave',()=>path.style.transform='');
-    path.style.transformOrigin='100px 100px';
-    svg.appendChild(path);
-  });
-  legend.innerHTML=pieData.map(d=>`<div class="legend-item"><span class="legend-color" style="background:${d.color}"></span>${d.label}<span class="legend-pct">${d.pct}%</span></div>`).join('');
-}
-buildPie();
+  var PROTOCOLS = ['TCP', 'UDP', 'ICMP', 'HTTP', 'HTTPS', 'DNS', 'SSH', 'FTP'];
+  var ATTACK_TYPES = ['Port Scan', 'DDoS', 'Brute Force', 'SQL Injection', 'C2 Beacon', 'Data Exfil'];
+  function randIP() { return (Math.floor(Math.random() * 223) + 1) + '.' + Math.floor(Math.random() * 256) + '.' + Math.floor(Math.random() * 256) + '.' + Math.floor(Math.random() * 256); }
+  function randPort() { var common = [22,53,80,443,8080,3306,3389,445,21,25]; return Math.random() < 0.6 ? common[Math.floor(Math.random() * common.length)] : Math.floor(Math.random() * 65535); }
 
-// Traffic chart (animated)
-const chartSvg=document.getElementById('trafficChart');
-let dataPoints=Array.from({length:60},()=>Math.random()*80+20);
-function drawChart(){
-  chartSvg.innerHTML='';
-  const w=600,h=150;
-  // Grid
-  for(let y=0;y<h;y+=30){
-    const line=document.createElementNS('http://www.w3.org/2000/svg','line');
-    line.setAttribute('x1',0);line.setAttribute('y1',y);line.setAttribute('x2',w);line.setAttribute('y2',y);
-    line.setAttribute('stroke','#1a2030');line.setAttribute('stroke-width','0.5');
-    chartSvg.appendChild(line);
-  }
-  const step=w/(dataPoints.length-1);
-  let pathD='M0,'+(h-dataPoints[0]);
-  let areaD='M0,'+h+' L0,'+(h-dataPoints[0]);
-  for(let i=1;i<dataPoints.length;i++){
-    const x=i*step;const y=h-dataPoints[i];
-    pathD+=` L${x},${y}`;areaD+=` L${x},${y}`;
-  }
-  areaD+=` L${w},${h} Z`;
-  // Area
-  const area=document.createElementNS('http://www.w3.org/2000/svg','path');
-  area.setAttribute('d',areaD);area.setAttribute('fill','rgba(0,230,118,0.06)');
-  chartSvg.appendChild(area);
-  // Anomaly area (red)
-  let redAreaD='';
-  for(let i=0;i<dataPoints.length;i++){
-    if(dataPoints[i]>85){
-      const x=i*step;
-      if(!redAreaD)redAreaD=`M${x},${h} L${x},${h-dataPoints[i]}`;
-      else redAreaD+=` L${x},${h-dataPoints[i]}`;
-    }else if(redAreaD){
-      redAreaD+=` L${(i-1)*step},${h} Z`;
-      const rp=document.createElementNS('http://www.w3.org/2000/svg','path');
-      rp.setAttribute('d',redAreaD);rp.setAttribute('fill','rgba(255,82,82,0.08)');
-      chartSvg.appendChild(rp);redAreaD='';
+  var running = true;
+  var packetCount = 0;
+  var threatCount = 0;
+
+  function addPacket() {
+    if (!running) return;
+    var isMalicious = Math.random() < 0.18;
+    var conf = isMalicious ? (75 + Math.random() * 24).toFixed(1) : (85 + Math.random() * 14.5).toFixed(1);
+    var proto = PROTOCOLS[Math.floor(Math.random() * PROTOCOLS.length)];
+    var label = isMalicious ? ATTACK_TYPES[Math.floor(Math.random() * ATTACK_TYPES.length)] : 'Benign';
+
+    var tbody = document.getElementById('monitorBody');
+    var tr = document.createElement('tr');
+    tr.style.animation = 'fadeIn 0.25s ease';
+    tr.innerHTML = '<td>' + randIP() + '</td><td>' + randIP() + '</td><td>' + randPort() + '</td><td>' + proto + '</td>'
+      + '<td><span class="badge ' + (isMalicious ? 'malicious' : 'benign') + '">' + label + '</span></td>'
+      + '<td class="confidence" style="color:' + (isMalicious ? 'var(--red)' : 'var(--green)') + '">' + conf + '%</td>';
+    tbody.insertBefore(tr, tbody.firstChild);
+    if (tbody.children.length > 50) tbody.removeChild(tbody.lastChild);
+
+    packetCount++;
+    if (isMalicious) {
+      threatCount++;
+      addLog(randIP(), label, conf);
     }
-  }
-  // Line
-  const path=document.createElementNS('http://www.w3.org/2000/svg','path');
-  path.setAttribute('d',pathD);path.setAttribute('fill','none');
-  path.setAttribute('stroke','var(--green)');path.setAttribute('stroke-width','2');
-  chartSvg.appendChild(path);
-}
-drawChart();
-setInterval(()=>{
-  dataPoints.shift();
-  dataPoints.push(Math.random()*100+10);
-  drawChart();
-  document.getElementById('trafficRate').textContent=Math.floor(Math.random()*2000+500)+' pkt/s';
-},1000);
 
-// Packet counter
-setInterval(()=>{
-  const el=document.getElementById('packetsCount');
-  let v=parseInt(el.textContent.replace(/,/g,''));
-  v+=Math.floor(Math.random()*500+100);
-  el.textContent=v.toLocaleString();
-},2000);
-
-// Network topology
-function buildTopology(){
-  const svg=document.getElementById('topoSvg');
-  const nodes=[
-    {id:'fw',x:200,y:20,label:'Firewall',color:'var(--red)',r:8},
-    {id:'router',x:200,y:70,label:'Router',color:'var(--yellow)',r:7},
-    {id:'ids',x:320,y:70,label:'IDS',color:'var(--green)',r:7},
-    {id:'sw1',x:100,y:120,label:'Switch-1',color:'var(--blue)',r:6},
-    {id:'sw2',x:300,y:120,label:'Switch-2',color:'var(--blue)',r:6},
-    {id:'srv1',x:40,y:170,label:'Web Server',color:'var(--cyan)',r:5},
-    {id:'srv2',x:120,y:170,label:'DB Server',color:'var(--cyan)',r:5},
-    {id:'ws1',x:240,y:170,label:'Workstation',color:'var(--text-dim)',r:4},
-    {id:'ws2',x:320,y:170,label:'Workstation',color:'var(--text-dim)',r:4},
-    {id:'ws3',x:370,y:170,label:'Workstation',color:'var(--text-dim)',r:4},
-  ];
-  const links=[
-    ['fw','router'],['router','ids'],['router','sw1'],['router','sw2'],
-    ['sw1','srv1'],['sw1','srv2'],['sw2','ws1'],['sw2','ws2'],['sw2','ws3']
-  ];
-  const nodeMap={};nodes.forEach(n=>nodeMap[n.id]=n);
-  links.forEach(([a,b])=>{
-    const na=nodeMap[a],nb=nodeMap[b];
-    const line=document.createElementNS('http://www.w3.org/2000/svg','line');
-    line.setAttribute('x1',na.x);line.setAttribute('y1',na.y);
-    line.setAttribute('x2',nb.x);line.setAttribute('y2',nb.y);
-    line.setAttribute('class','topo-link');
-    svg.appendChild(line);
-  });
-  nodes.forEach(n=>{
-    const c=document.createElementNS('http://www.w3.org/2000/svg','circle');
-    c.setAttribute('cx',n.x);c.setAttribute('cy',n.y);c.setAttribute('r',n.r);
-    c.setAttribute('fill',n.color);c.setAttribute('class','topo-node');
-    c.style.filter='drop-shadow(0 0 3px '+n.color+')';
-    svg.appendChild(c);
-    const t=document.createElementNS('http://www.w3.org/2000/svg','text');
-    t.setAttribute('x',n.x);t.setAttribute('y',n.y+n.r+10);
-    t.setAttribute('text-anchor','middle');t.setAttribute('class','topo-label');
-    t.textContent=n.label;
-    svg.appendChild(t);
-  });
-  // Animate packets
-  function animatePacket(){
-    const link=links[Math.floor(Math.random()*links.length)];
-    const na=nodeMap[link[0]],nb=nodeMap[link[1]];
-    const pkt=document.createElementNS('http://www.w3.org/2000/svg','circle');
-    pkt.setAttribute('r','2');pkt.setAttribute('class','topo-packet');
-    pkt.setAttribute('cx',na.x);pkt.setAttribute('cy',na.y);
-    svg.appendChild(pkt);
-    const dur=800+Math.random()*400;
-    const start=performance.now();
-    function step(ts){
-      const p=Math.min(1,(ts-start)/dur);
-      pkt.setAttribute('cx',na.x+(nb.x-na.x)*p);
-      pkt.setAttribute('cy',na.y+(nb.y-na.y)*p);
-      if(p<1)requestAnimationFrame(step);
-      else svg.removeChild(pkt);
-    }
-    requestAnimationFrame(step);
+    var scroll = document.getElementById('monitorScroll');
+    scroll.scrollTop = 0;
   }
-  setInterval(animatePacket,300);
-}
-buildTopology();
+
+  function addLog(src, cls, conf) {
+    var tbody = document.getElementById('logBody');
+    var tr = document.createElement('tr');
+    tr.style.animation = 'fadeIn 0.25s ease';
+    var ts = new Date().toLocaleTimeString();
+    tr.innerHTML = '<td style="color:var(--secondary);font-size:12px">' + ts + '</td><td style="font-family:monospace;font-size:12px">' + src + '</td>'
+      + '<td><span class="badge malicious">' + cls + '</span></td>'
+      + '<td class="confidence" style="color:var(--red)">' + conf + '%</td>';
+    tbody.insertBefore(tr, tbody.firstChild);
+    if (tbody.children.length > 30) tbody.removeChild(tbody.lastChild);
+  }
+
+  setInterval(function () { addPacket(); }, 1200);
+  for (var i = 0; i < 12; i++) addPacket();
+
+  document.getElementById('toggleBtn').addEventListener('click', function () {
+    running = !running;
+    this.textContent = running ? 'Pause' : 'Resume';
+  });
+
+  var features = [
+    { name: 'Flow Duration', value: 92, tier: 'high' },
+    { name: 'Total Fwd Packets', value: 87, tier: 'high' },
+    { name: 'Flow Bytes/s', value: 81, tier: 'high' },
+    { name: 'Fwd Packet Len Max', value: 74, tier: 'high' },
+    { name: 'Bwd Packet Len Mean', value: 68, tier: 'mid' },
+    { name: 'Flow IAT Mean', value: 61, tier: 'mid' },
+    { name: 'Fwd IAT Total', value: 53, tier: 'mid' },
+    { name: 'Packet Len Variance', value: 44, tier: 'low' },
+    { name: 'Avg Bwd Seg Size', value: 37, tier: 'low' },
+    { name: 'Subflow Fwd Bytes', value: 29, tier: 'low' },
+  ];
+
+  var chart = document.getElementById('barChart');
+  features.forEach(function (f) {
+    var row = document.createElement('div');
+    row.className = 'bar-row';
+    row.innerHTML = '<div class="bar-name">' + f.name + '</div>'
+      + '<div class="bar-track"><div class="bar-fill ' + f.tier + '" style="width:0%">' + f.value + '%</div></div>';
+    chart.appendChild(row);
+  });
+  setTimeout(function () {
+    var fills = chart.querySelectorAll('.bar-fill');
+    features.forEach(function (f, i) { fills[i].style.width = f.value + '%'; });
+  }, 200);
+})();
 </script>
 </body>
 </html>
