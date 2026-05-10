@@ -11,14 +11,12 @@ Signal handlers ensure clean shutdown on SIGINT/SIGTERM.
 """
 import signal
 import sys
-import threading
 from src.utils.config import config
 from src.utils.db import init_db
 from src.utils.logger import get_logger
 from src.nids.capture import PacketCapture
 from src.nids.flow_builder import FlowBuilder
 from src.nids.signature_engine import SignatureEngine
-from src.nids.feature_extractor import extract_features
 from src.ml.inference import InferenceEngine
 from src.hids.log_parser import LogParser
 from src.hids.file_integrity import FileIntegrityMonitor

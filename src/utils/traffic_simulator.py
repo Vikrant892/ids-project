@@ -3,7 +3,9 @@ src/utils/traffic_simulator.py
 Generates synthetic network flows and syslog events for demo/testing.
 """
 from __future__ import annotations
-import json, os, random, time
+import json
+import random
+import time
 from datetime import datetime
 from pathlib import Path
 from faker import Faker

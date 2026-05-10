@@ -13,7 +13,7 @@ Weight defaults (adjust based on observed F1 on validation set):
   RF:  0.50  (supervised, highest precision on known attacks)
   AE:  0.25  (reconstruction error, good for novel attacks)
 """
-from typing import Optional, Tuple
+from typing import Tuple
 import numpy as np
 from src.ml.isolation_forest import IFModel
 from src.ml.random_forest import RFModel
@@ -46,7 +46,7 @@ class EnsembleDetector:
                 model.load()
             except Exception as e:
                 errors.append(name)
-                logger.warning(f"model_load_failed", model=name, error=str(e))
+                logger.warning("model_load_failed", model=name, error=str(e))
         self._models_loaded = True
         if errors:
             logger.warning("some_models_unavailable", models=errors)

@@ -10,7 +10,6 @@ Attack classes mapped from CICIDS2017:
 import numpy as np
 import joblib
 from sklearn.ensemble import RandomForestClassifier
-from sklearn.preprocessing import LabelEncoder
 from pathlib import Path
 from src.utils.config import config
 from src.utils.logger import get_logger

@@ -1,7 +1,7 @@
 """Unit tests — Feature Extractor"""
 import numpy as np
-import pytest
-import sys, os
+import sys
+import os
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "../.."))
 from src.nids.feature_extractor import extract_features, FEATURE_NAMES, NUM_FEATURES
 

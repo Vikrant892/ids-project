@@ -2,14 +2,18 @@
 IDS Intelligence Platform — Full Dashboard
 Rich threat analysis with attacker profiling, IP intelligence, and detailed charts.
 """
-import os, sys, json, time, io, struct, socket, hmac
+import os
+import sys
+import json
+import time
+import struct
+import socket
+import hmac
 import pandas as pd
 import numpy as np
 import streamlit as st
-import plotly.express as px
 import plotly.graph_objects as go
-from plotly.subplots import make_subplots
-from datetime import datetime, timedelta
+from datetime import datetime
 from pathlib import Path
 from collections import defaultdict, Counter
 
@@ -302,7 +306,7 @@ def extract_windows_forensics(packets: list) -> dict:
                 cli_mac = ":".join(f"{dhcp[28+i]:02x}" for i in range(6)).upper()
                 if cli_mac != "00:00:00:00:00:00" and not result['mac']:
                     result['mac'] = cli_mac
-                    result['sources'].append(f"MAC from DHCP chaddr field")
+                    result['sources'].append("MAC from DHCP chaddr field")
                 # Parse options
                 i = 240
                 while i < len(dhcp) - 1:
@@ -318,7 +322,7 @@ def extract_windows_forensics(packets: list) -> dict:
                         hostname = val.decode('ascii', errors='ignore').strip('\x00 ')
                         if hostname:
                             result['hostname'] = hostname
-                            result['sources'].append(f"Hostname from DHCP option 12")
+                            result['sources'].append("Hostname from DHCP option 12")
                     # Option 60 = Vendor Class (OS fingerprint)
                     elif opt == 60 and not result['os']:
                         vc = val.decode('ascii', errors='ignore')

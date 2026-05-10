@@ -8,10 +8,8 @@ Three channels:
 Each notifier is a callable: notifier(alert_dict) -> None
 """
 import smtplib
-import json
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
-from typing import Optional
 import requests
 from src.utils.config import config
 from src.utils.logger import get_logger

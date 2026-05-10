@@ -3,8 +3,8 @@ Simulation tests — Replay known attack patterns.
 Verifies that known attacks are detected at expected severity levels.
 These tests use the full signature engine with realistic flow data.
 """
-import pytest
-import sys, os
+import sys
+import os
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "../.."))
 from src.nids.signature_engine import SignatureEngine
 

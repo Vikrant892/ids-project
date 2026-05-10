@@ -11,7 +11,7 @@ Responsibilities:
 import time
 import hashlib
 import threading
-from collections import defaultdict, deque
+from collections import deque
 from datetime import datetime
 from typing import Callable, List
 from src.utils.config import config

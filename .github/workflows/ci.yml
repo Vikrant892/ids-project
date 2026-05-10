@@ -28,7 +28,12 @@ jobs:
       # Lint failures now block the build. Tweak the ignore list as needed,
       # but do not re-add `|| true` or `continue-on-error: true` — that just
       # papers over real issues.
-      - run: ruff check src/ tests/ scripts/ --ignore E501,E401,F401,E302,E303
+      # Ignored rules:
+      #   E501 long lines, E401/F401 unused imports (intentional re-exports),
+      #   E302/E303 blank-line counts, E701/E702 single-line if/import (compact
+      #   dashboard style), E722 bare-except (intentional in error fan-outs),
+      #   E741 ambiguous var names (limited use).
+      - run: ruff check src/ tests/ scripts/ --ignore E501,E401,F401,E302,E303,E701,E702,E722,E741
 
   test:
     name: Test (pytest)

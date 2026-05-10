@@ -8,7 +8,6 @@ A flow is completed when:
 """
 import time
 import threading
-from collections import defaultdict
 from typing import Callable, Dict, List
 from src.utils.logger import get_logger
 

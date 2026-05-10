@@ -2,8 +2,8 @@
 Integration test — Full NIDS pipeline (without real packets).
 Simulates: flow dict → feature extraction → signature engine → alert manager.
 """
-import pytest
-import sys, os
+import sys
+import os
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "../.."))
 import unittest.mock as mock
 
@@ -66,7 +66,6 @@ class TestSignatureEngine:
 class TestFeaturePipeline:
     def test_flow_to_features_no_error(self):
         from src.nids.feature_extractor import extract_features, NUM_FEATURES
-        import numpy as np
         f = extract_features(BENIGN_FLOW)
         assert f.shape == (NUM_FEATURES,)
         assert not any(v != v for v in f)   # No NaN (NaN != NaN)
