@@ -45,6 +45,9 @@ ENV STREAMLIT_SERVER_PORT=7860 \
 
 EXPOSE 7860
 
-# Use the existing top-level shim so import-time wiring in src.dashboard.app
-# runs once, the same way Streamlit Cloud invokes it.
-CMD ["streamlit", "run", "streamlit_app.py", "--server.port=7860", "--server.address=0.0.0.0"]
+# Point Streamlit directly at the dashboard module. The streamlit_app.py shim
+# at the repo root uses importlib.import_module() which only executes the
+# dashboard's top-level render code ONCE on first import — Streamlit's rerun
+# model needs the script to re-execute on every interaction, so the shim
+# leaves the iframe blank after the first paint. Bypassing it fixes this.
+CMD ["streamlit", "run", "src/dashboard/app.py", "--server.port=7860", "--server.address=0.0.0.0", "--server.enableXsrfProtection=false"]
