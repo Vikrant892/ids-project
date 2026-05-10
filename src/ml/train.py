@@ -256,25 +256,32 @@ def main():
     )
     X_benign_train = X_train[y_train == 0]
 
+    # FAST_TRAIN=1 cuts training cost ~80% so the build fits inside the
+    # Hugging Face Spaces free-tier 30-min build budget. Real CICIDS training
+    # locally still uses full params by default.
+    fast = os.getenv("FAST_TRAIN", "0") in ("1", "true", "yes")
+    rf_n  = 80  if fast else 300
+    ae_ep = 10  if fast else 50
+
     metrics: dict = {}
 
     # ── Isolation Forest (unsupervised — train on benign only) ──────────────
-    logger.info("training_isolation_forest")
-    if_model = IFModel(contamination=0.05)
+    logger.info("training_isolation_forest", fast=fast)
+    if_model = IFModel(contamination=0.05, n_estimators=80 if fast else 200)
     if_model.fit(X_benign_train)
     metrics["isolation_forest"] = evaluate_model(if_model, X_test, y_test, "Isolation Forest")
     if_model.save()
 
     # ── Random Forest (supervised) ──────────────────────────────────────────
-    logger.info("training_random_forest")
-    rf_model = RFModel(n_estimators=300)
+    logger.info("training_random_forest", n_estimators=rf_n)
+    rf_model = RFModel(n_estimators=rf_n)
     rf_model.fit(X_train, y_train)
     metrics["random_forest"] = evaluate_model(rf_model, X_test, y_test, "Random Forest")
     rf_model.save()
 
     # ── Autoencoder (unsupervised — train on benign only) ───────────────────
-    logger.info("training_autoencoder")
-    ae_model = AutoencoderModel(input_dim=NUM_FEATURES, epochs=50)
+    logger.info("training_autoencoder", epochs=ae_ep)
+    ae_model = AutoencoderModel(input_dim=NUM_FEATURES, epochs=ae_ep)
     ae_model.fit(X_benign_train)
     metrics["autoencoder"] = evaluate_model(ae_model, X_test, y_test, "Autoencoder")
     ae_model.save()
@@ -294,8 +301,11 @@ def _generate_synthetic_data(output_dir: str):
     """
     import warnings; warnings.filterwarnings("ignore")
     from sklearn.datasets import make_classification
+    # 5k samples in fast mode (build-time on Spaces), 50k otherwise.
+    fast = os.getenv("FAST_TRAIN", "0") in ("1", "true", "yes")
     X, y = make_classification(
-        n_samples=50000, n_features=NUM_FEATURES,
+        n_samples=5000 if fast else 50000,
+        n_features=NUM_FEATURES,
         n_informative=18, n_redundant=4,
         weights=[0.80, 0.20], random_state=42
     )

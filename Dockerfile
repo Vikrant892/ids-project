@@ -41,8 +41,8 @@ RUN mkdir -p db logs data/raw data/processed data/baselines src/ml/models
 # pipeline writes IF/RF/AE artefacts into src/ml/models/ and a metrics.json
 # the dashboard reads. Falls back to synthetic make_classification because
 # CICIDS2017 isn't bundled in the image.
-ENV PYTHONPATH=/app
-RUN python -m src.ml.train 2>&1 | tail -50
+ENV PYTHONPATH=/app FAST_TRAIN=1
+RUN python -m src.ml.train
 
 # HF Spaces sends traffic to port 7860 by default; map Streamlit there.
 ENV STREAMLIT_SERVER_PORT=7860 \
