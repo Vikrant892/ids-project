@@ -6,39 +6,60 @@ on:
   pull_request:
     branches: [main]
 
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   lint:
     name: Lint (ruff)
-    runs-on: windows-latest
-    continue-on-error: true
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
-        with: { python-version: "3.11" }
-      - run: pip install ruff
-      - run: ruff check src/ tests/ --ignore E501,E401,F401,E302,E303 || true
+        with:
+          python-version: "3.11"
+          cache: pip
+      - run: pip install ruff==0.9.10
+      # Lint failures now block the build. Tweak the ignore list as needed,
+      # but do not re-add `|| true` or `continue-on-error: true` — that just
+      # papers over real issues.
+      - run: ruff check src/ tests/ scripts/ --ignore E501,E401,F401,E302,E303
 
   test:
     name: Test (pytest)
-    runs-on: windows-latest
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
-        with: { python-version: "3.11" }
+        with:
+          python-version: "3.11"
+          cache: pip
       - name: Install dependencies
         run: |
-          pip install -r requirements.txt
-          pip install pytest pytest-cov
+          pip install -r requirements_local.txt
+          pip install pytest pytest-cov pytest-mock
       - name: Create directories
+        run: mkdir -p db logs data/raw data/processed data/baselines src/ml/models
+      - name: Run unit + simulation + integration tests
         run: |
-          mkdir -p db logs data/raw data/processed data/baselines src/ml/models
-        shell: bash
-      - name: Run tests
-        run: |
-          python -m pytest tests/unit/ tests/simulation/ -v --cov=src --cov-report=term-missing
+          python -m pytest tests/unit/ tests/simulation/ tests/integration/ \
+            -v --cov=src --cov-report=term-missing --cov-report=xml
         env:
           PYTHONPATH: .
           DB_PATH: db/test_ids.sqlite
           CAPTURE_MODE: pcap
           LOG_LEVEL: WARNING
-
+      - name: Upload coverage report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage
+          path: coverage.xml
+          retention-days: 14
+          if-no-files-found: ignore

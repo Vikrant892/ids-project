@@ -2,7 +2,7 @@
 IDS Intelligence Platform — Full Dashboard
 Rich threat analysis with attacker profiling, IP intelligence, and detailed charts.
 """
-import os, sys, json, time, io, struct, socket
+import os, sys, json, time, io, struct, socket, hmac
 import pandas as pd
 import numpy as np
 import streamlit as st
@@ -22,6 +22,13 @@ try:
 except Exception:
     DB_OK = False
 
+try:
+    from src.utils.config import config
+    CONFIG_OK = True
+except Exception:
+    config = None
+    CONFIG_OK = False
+
 # ── Page Config ───────────────────────────────────────────────────────────────
 st.set_page_config(
     page_title="IDS Intelligence Platform",
@@ -29,6 +36,43 @@ st.set_page_config(
     layout="wide",
     initial_sidebar_state="expanded",
 )
+
+# ── Auth gate ─────────────────────────────────────────────────────────────────
+# Single shared password sourced from DASHBOARD_PASSWORD env var or
+# st.secrets["DASHBOARD_PASSWORD"]. If neither is set, auth is disabled
+# (development only). hmac.compare_digest avoids timing-based password leaks.
+def _expected_password() -> str:
+    cfg = (config.DASHBOARD_PASSWORD if CONFIG_OK and config else "") or ""
+    if cfg:
+        return cfg
+    try:
+        return st.secrets.get("DASHBOARD_PASSWORD", "") or ""
+    except Exception:
+        return ""
+
+
+def _check_auth() -> bool:
+    expected = _expected_password()
+    if not expected:
+        return True
+    if st.session_state.get("authenticated"):
+        return True
+    st.title("IDS Intelligence Platform")
+    st.caption("This dashboard is password-protected.")
+    with st.form("auth", clear_on_submit=False):
+        pwd = st.text_input("Password", type="password")
+        submitted = st.form_submit_button("Sign in")
+    if submitted:
+        if hmac.compare_digest(pwd.encode("utf-8"), expected.encode("utf-8")):
+            st.session_state["authenticated"] = True
+            st.rerun()
+        else:
+            st.error("Incorrect password.")
+    return False
+
+
+if not _check_auth():
+    st.stop()
 
 # ── Design System ─────────────────────────────────────────────────────────────
 st.markdown("""
@@ -1376,20 +1420,55 @@ elif "ML" in page:
             </div></div>""", unsafe_allow_html=True)
 
     st.markdown("")
-    st.markdown('<div class="section-title">Benchmark Performance (CICIDS2017)</div>', unsafe_allow_html=True)
-    perf = pd.DataFrame({"Model":["Isolation Forest","Random Forest","Autoencoder","Ensemble"],
-        "Precision":[0.81,0.97,0.84,0.96],"Recall":[0.76,0.95,0.80,0.94],
-        "F1":[0.78,0.96,0.82,0.95],"ROC-AUC":[0.87,0.99,0.91,0.98]})
+    st.markdown('<div class="section-title">Benchmark Performance</div>', unsafe_allow_html=True)
+    metrics_path = Path((config.MODEL_DIR if CONFIG_OK and config else "src/ml/models")) / "metrics.json"
+    perf = pd.DataFrame(columns=["Model", "Precision", "Recall", "F1", "ROC-AUC"])
+    if metrics_path.exists():
+        try:
+            with metrics_path.open("r", encoding="utf-8") as fh:
+                mtx = json.load(fh)
+            trained_at = (mtx.get("trained_at") or "")[:19]
+            st.caption(
+                f"Trained {trained_at}Z · "
+                f"dataset: {mtx.get('dataset', 'unknown')} · "
+                f"attack rate in train set: {mtx.get('attack_rate', '?')}% · "
+                f"features: {mtx.get('n_features', '?')}"
+            )
+            rows = []
+            for key, label in [
+                ("isolation_forest", "Isolation Forest"),
+                ("random_forest",    "Random Forest"),
+                ("autoencoder",      "Autoencoder"),
+                ("ensemble",         "Ensemble"),
+            ]:
+                m = mtx.get("models", {}).get(key, {})
+                rows.append({
+                    "Model":     label,
+                    "Precision": round(float(m.get("precision", 0.0)), 3),
+                    "Recall":    round(float(m.get("recall", 0.0)), 3),
+                    "F1":        round(float(m.get("f1", 0.0)), 3),
+                    "ROC-AUC":   round(float(m.get("roc_auc", 0.0)), 3),
+                })
+            perf = pd.DataFrame(rows)
+        except Exception as exc:
+            st.warning(f"Could not parse metrics.json: {exc}")
+    else:
+        st.info(
+            "No training-run metrics found. Run `python -m src.ml.train` to produce "
+            "`src/ml/models/metrics.json`; this table will then show real numbers."
+        )
+
     st.dataframe(perf, use_container_width=True, hide_index=True)
-    fig_p = go.Figure()
-    for m,col in [("Precision","#2d7dd2"),("Recall","#00d4ff"),("F1","#00e5a0"),("ROC-AUC","#ffd166")]:
-        fig_p.add_trace(go.Bar(name=m, x=perf["Model"], y=perf[m], marker_color=col,
-            text=[f"{v:.2f}" for v in perf[m]], textposition="outside",
-            textfont=dict(family="IBM Plex Mono", size=10)))
-    pfmt(fig_p)
-    fig_p.update_layout(height=300, barmode="group", yaxis_range=[0,1.1],
-        legend=dict(orientation="h", font=dict(family="IBM Plex Mono", size=11)))
-    st.plotly_chart(fig_p, use_container_width=True, config={"displayModeBar":False})
+    if not perf.empty:
+        fig_p = go.Figure()
+        for m,col in [("Precision","#2d7dd2"),("Recall","#00d4ff"),("F1","#00e5a0"),("ROC-AUC","#ffd166")]:
+            fig_p.add_trace(go.Bar(name=m, x=perf["Model"], y=perf[m], marker_color=col,
+                text=[f"{v:.2f}" for v in perf[m]], textposition="outside",
+                textfont=dict(family="IBM Plex Mono", size=10)))
+        pfmt(fig_p)
+        fig_p.update_layout(height=300, barmode="group", yaxis_range=[0,1.1],
+            legend=dict(orientation="h", font=dict(family="IBM Plex Mono", size=11)))
+        st.plotly_chart(fig_p, use_container_width=True, config={"displayModeBar":False})
 
 # ══════════════════════════════════════════════════════════════════════════════
 # PCAP INSPECTOR

@@ -1,43 +1,42 @@
 """
 ML Training Pipeline.
-Ingests CICIDS2017 CSVs, engineers features, trains all three models,
-evaluates on a held-out test set, and serialises to disk.
+Ingests CICIDS2017 CSVs, engineers features in the EXACT order produced by
+src.nids.feature_extractor.extract_features at inference time, trains all three
+models, evaluates on a held-out test set, and serialises both the models and a
+metrics JSON file the dashboard reads to display real benchmark numbers.
 
 Usage:
     python -m src.ml.train
-    docker compose --profile train up ids-trainer
 """
+import json
 import os
-import sys
+from datetime import datetime, timezone
+from pathlib import Path
+
 import numpy as np
 import pandas as pd
-from pathlib import Path
+from sklearn.metrics import (
+    classification_report,
+    f1_score,
+    precision_score,
+    recall_score,
+    roc_auc_score,
+)
 from sklearn.model_selection import train_test_split
-from sklearn.metrics import classification_report, roc_auc_score
+
+from src.ml.autoencoder import AutoencoderModel
 from src.ml.isolation_forest import IFModel
 from src.ml.random_forest import RFModel
-from src.ml.autoencoder import AutoencoderModel
 from src.nids.feature_extractor import FEATURE_NAMES, NUM_FEATURES
-from src.utils.logger import get_logger
 from src.utils.config import config
+from src.utils.logger import get_logger
 
 logger = get_logger(__name__)
 
-# CICIDS2017 column mappings (columns vary slightly between files)
 CICIDS_LABEL_COL = "Label"
 CICIDS_BENIGN_LABEL = "BENIGN"
 
-# Subset of CICIDS2017 columns mapped to our feature schema
-# (We engineer flows ourselves from PCAP but CICIDS provides pre-extracted flows)
-CICIDS_FEATURE_COLS = [
-    " Total Fwd Packets", " Total Backward Packets",
-    "Total Length of Fwd Packets", " Total Length of Bwd Packets",
-    " Fwd Packet Length Max", " Fwd Packet Length Min",
-    " Flow Duration", " Flow Bytes/s", " Flow Packets/s",
-    " Fwd Packets/s", " Bwd Packets/s",
-    " SYN Flag Count", " FIN Flag Count", " RST Flag Count",
-    " Destination Port",
-]
+METRICS_PATH = Path(config.MODEL_DIR) / "metrics.json"
 
 
 def load_cicids(data_dir: str) -> pd.DataFrame:
@@ -62,52 +61,178 @@ def load_cicids(data_dir: str) -> pd.DataFrame:
     return df
 
 
+def _col(df: pd.DataFrame, *candidates: str, default: float = 0.0) -> pd.Series:
+    """
+    Return the first matching column from `candidates` (case-insensitive,
+    whitespace-tolerant). If none exist, return a constant Series.
+    CICIDS2017 column names vary between dump files (leading spaces, mixed case),
+    so we normalise here rather than at every call site.
+    """
+    norm = {c.strip().lower(): c for c in df.columns}
+    for cand in candidates:
+        key = cand.strip().lower()
+        if key in norm:
+            return pd.to_numeric(df[norm[key]], errors="coerce").fillna(default)
+    return pd.Series(default, index=df.index, dtype=np.float64)
+
+
 def preprocess(df: pd.DataFrame) -> tuple:
     """
-    Clean, engineer features, and create binary labels.
+    Map CICIDS2017 columns into the EXACT feature order produced by
+    src.nids.feature_extractor.extract_features at inference time.
+
+    This is correctness-critical: training and inference must produce
+    identically-ordered feature vectors or the models learn the wrong
+    correlations. The previous implementation mapped CICIDS columns into
+    slots 0..14 in CICIDS order, which did not match FEATURE_NAMES.
+
     Returns (X_benign, X_all, y_all).
     """
-    # Drop rows with inf / NaN
-    df.replace([float("inf"), float("-inf")], float("nan"), inplace=True)
-    df.dropna(subset=[CICIDS_LABEL_COL], inplace=True)
-    df.fillna(0, inplace=True)
-
-    # Binary label
+    # Drop rows with inf / NaN labels
+    df = df.replace([float("inf"), float("-inf")], float("nan"))
+    df = df.dropna(subset=[CICIDS_LABEL_COL])
     df["binary_label"] = (df[CICIDS_LABEL_COL] != CICIDS_BENIGN_LABEL).astype(int)
 
-    # Feature engineering: map CICIDS columns to our schema
-    available = [c for c in CICIDS_FEATURE_COLS if c in df.columns]
-    X_raw = df[available].copy().fillna(0)
+    # Pull source columns (case/whitespace-tolerant)
+    fwd_packets = _col(df, "Total Fwd Packets")
+    bwd_packets = _col(df, "Total Backward Packets", "Total Bwd Packets")
+    fwd_bytes = _col(df, "Total Length of Fwd Packets", "Fwd Packets Length Total")
+    bwd_bytes = _col(df, "Total Length of Bwd Packets", "Bwd Packets Length Total")
+    duration_us = _col(df, "Flow Duration")  # microseconds in CICIDS2017
+    pkt_rate = _col(df, "Flow Packets/s")
+    byte_rate = _col(df, "Flow Bytes/s")
+    syn_count = _col(df, "SYN Flag Count")
+    fin_count = _col(df, "FIN Flag Count")
+    rst_count = _col(df, "RST Flag Count")
+    dst_port = _col(df, "Destination Port", "Dst Port")
+    src_port = _col(df, "Source Port", "Src Port")
+    proto_num = _col(df, "Protocol")
 
-    # Pad or truncate to NUM_FEATURES
-    X = np.zeros((len(X_raw), NUM_FEATURES), dtype=np.float32)
-    n_cols = min(len(available), NUM_FEATURES)
-    X[:, :n_cols] = X_raw.values[:, :n_cols]
+    # Derived
+    duration_ms = (duration_us / 1000.0).clip(lower=0.001)
+    total_packets = (fwd_packets + bwd_packets).clip(lower=1)
+    total_bytes = (fwd_bytes + bwd_bytes).clip(lower=0)
+    avg_pkt_size = total_bytes / total_packets
+    fwd_bwd_ratio = fwd_packets / bwd_packets.clip(lower=1)
 
-    # Clip extreme values
+    # Build feature matrix in FEATURE_NAMES order
+    columns = {
+        "duration_ms":          duration_ms,
+        "total_packets":        total_packets,
+        "total_bytes":          total_bytes,
+        "fwd_packets":          fwd_packets,
+        "bwd_packets":          bwd_packets,
+        "fwd_bytes":            fwd_bytes,
+        "bwd_bytes":            bwd_bytes,
+        "pkt_rate":             pkt_rate.clip(lower=0.001),
+        "byte_rate":            byte_rate.clip(lower=0.001),
+        "fwd_bwd_ratio":        fwd_bwd_ratio,
+        "avg_pkt_size":         avg_pkt_size,
+        "has_syn":              (syn_count > 0).astype(np.float32),
+        "has_fin":              (fin_count > 0).astype(np.float32),
+        "has_rst":              (rst_count > 0).astype(np.float32),
+        "dst_port_well_known":  (dst_port < 1024).astype(np.float32),
+        "dst_port_registered":  ((dst_port >= 1024) & (dst_port < 49152)).astype(np.float32),
+        "dst_port_ephemeral":   (dst_port >= 49152).astype(np.float32),
+        "src_port_privileged":  (src_port < 1024).astype(np.float32),
+        "is_tcp":               (proto_num == 6).astype(np.float32),
+        "is_udp":               (proto_num == 17).astype(np.float32),
+        "is_icmp":              (proto_num == 1).astype(np.float32),
+        "log_total_bytes":      np.log1p(total_bytes),
+        "log_pkt_rate":         np.log1p(pkt_rate.clip(lower=0)),
+        "log_byte_rate":        np.log1p(byte_rate.clip(lower=0)),
+    }
+    # Sanity-check ordering
+    assert list(columns.keys()) == FEATURE_NAMES, (
+        "Training feature order does not match FEATURE_NAMES — would cause "
+        "silent training/inference schema drift."
+    )
+
+    X = np.column_stack([columns[name].to_numpy(dtype=np.float32) for name in FEATURE_NAMES])
+    X = np.nan_to_num(X, nan=0.0, posinf=1e9, neginf=0.0)
     X = np.clip(X, 0, 1e9)
 
-    y = df["binary_label"].values.astype(int)
+    y = df["binary_label"].to_numpy(dtype=np.int8)
     X_benign = X[y == 0]
 
-    attack_rate = round(y.mean() * 100, 2)
-    logger.info("preprocessing_complete", total=len(X), attack_rate=f"{attack_rate}%")
+    attack_rate = round(float(y.mean()) * 100, 2)
+    logger.info(
+        "preprocessing_complete",
+        total=len(X),
+        benign=int((y == 0).sum()),
+        attack=int((y == 1).sum()),
+        attack_rate=f"{attack_rate}%",
+        n_features=NUM_FEATURES,
+    )
 
     return X_benign, X, y
 
 
-def evaluate_model(model, X_test: np.ndarray, y_test: np.ndarray, name: str):
-    """Print classification metrics."""
+def evaluate_model(model, X_test: np.ndarray, y_test: np.ndarray, name: str) -> dict:
+    """
+    Compute classification metrics for a trained model.
+    Returns a dict suitable for the metrics.json file consumed by the dashboard.
+    """
     preds = np.array([model.predict(x) for x in X_test])
     scores = np.array([model.score(x) for x in X_test])
     print(f"\n{'='*50}")
     print(f"Model: {name}")
-    print(classification_report(y_test, preds, target_names=["BENIGN", "ATTACK"]))
+    print(classification_report(y_test, preds, target_names=["BENIGN", "ATTACK"], zero_division=0))
     try:
-        auc = roc_auc_score(y_test, scores)
+        auc = float(roc_auc_score(y_test, scores))
         print(f"ROC-AUC: {auc:.4f}")
     except Exception:
-        pass
+        auc = float("nan")
+    return {
+        "name":      name,
+        "precision": float(precision_score(y_test, preds, pos_label=1, zero_division=0)),
+        "recall":    float(recall_score(y_test, preds, pos_label=1, zero_division=0)),
+        "f1":        float(f1_score(y_test, preds, pos_label=1, zero_division=0)),
+        "roc_auc":   auc,
+        "n_test":    int(len(y_test)),
+    }
+
+
+def _ensemble_metrics(if_m, rf_m, ae_m, X_test, y_test) -> dict:
+    """Compute majority-vote ensemble metrics."""
+    if_pred = np.array([if_m.predict(x) for x in X_test])
+    rf_pred = np.array([rf_m.predict(x) for x in X_test])
+    ae_pred = np.array([ae_m.predict(x) for x in X_test])
+    votes = if_pred + rf_pred + ae_pred
+    ens_pred = (votes >= 2).astype(int)
+
+    if_score = np.array([if_m.score(x) for x in X_test])
+    rf_score = np.array([rf_m.score(x) for x in X_test])
+    ae_score = np.array([ae_m.score(x) for x in X_test])
+    ens_score = 0.25 * if_score + 0.50 * rf_score + 0.25 * ae_score
+
+    try:
+        auc = float(roc_auc_score(y_test, ens_score))
+    except Exception:
+        auc = float("nan")
+    return {
+        "name":      "Ensemble",
+        "precision": float(precision_score(y_test, ens_pred, pos_label=1, zero_division=0)),
+        "recall":    float(recall_score(y_test, ens_pred, pos_label=1, zero_division=0)),
+        "f1":        float(f1_score(y_test, ens_pred, pos_label=1, zero_division=0)),
+        "roc_auc":   auc,
+        "n_test":    int(len(y_test)),
+    }
+
+
+def _write_metrics(metrics_by_model: dict, *, dataset: str, attack_rate: float) -> None:
+    payload = {
+        "trained_at":  datetime.now(timezone.utc).isoformat(),
+        "dataset":     dataset,
+        "attack_rate": attack_rate,
+        "n_features":  NUM_FEATURES,
+        "feature_names": FEATURE_NAMES,
+        "models":      metrics_by_model,
+    }
+    METRICS_PATH.parent.mkdir(parents=True, exist_ok=True)
+    with METRICS_PATH.open("w", encoding="utf-8") as fh:
+        json.dump(payload, fh, indent=2)
+    logger.info("metrics_written", path=str(METRICS_PATH))
 
 
 def main():
@@ -115,12 +240,15 @@ def main():
     config.ensure_dirs()
 
     raw_dir = "data/raw"
+    is_synthetic = False
     if not os.path.exists(raw_dir) or not list(Path(raw_dir).glob("*.csv")):
         logger.warning("no_data_found_generating_synthetic", dir=raw_dir)
         _generate_synthetic_data(raw_dir)
+        is_synthetic = True
 
     df = load_cicids(raw_dir)
     X_benign, X_all, y_all = preprocess(df)
+    attack_rate = round(float((y_all == 1).mean()) * 100, 2)
 
     # Stratified 80/20 split
     X_train, X_test, y_train, y_test = train_test_split(
@@ -128,26 +256,33 @@ def main():
     )
     X_benign_train = X_train[y_train == 0]
 
+    metrics: dict = {}
+
     # ── Isolation Forest (unsupervised — train on benign only) ──────────────
     logger.info("training_isolation_forest")
     if_model = IFModel(contamination=0.05)
     if_model.fit(X_benign_train)
-    evaluate_model(if_model, X_test, y_test, "Isolation Forest")
+    metrics["isolation_forest"] = evaluate_model(if_model, X_test, y_test, "Isolation Forest")
     if_model.save()
 
     # ── Random Forest (supervised) ──────────────────────────────────────────
     logger.info("training_random_forest")
     rf_model = RFModel(n_estimators=300)
     rf_model.fit(X_train, y_train)
-    evaluate_model(rf_model, X_test, y_test, "Random Forest")
+    metrics["random_forest"] = evaluate_model(rf_model, X_test, y_test, "Random Forest")
     rf_model.save()
 
     # ── Autoencoder (unsupervised — train on benign only) ───────────────────
     logger.info("training_autoencoder")
     ae_model = AutoencoderModel(input_dim=NUM_FEATURES, epochs=50)
     ae_model.fit(X_benign_train)
-    evaluate_model(ae_model, X_test, y_test, "Autoencoder")
+    metrics["autoencoder"] = evaluate_model(ae_model, X_test, y_test, "Autoencoder")
     ae_model.save()
+
+    metrics["ensemble"] = _ensemble_metrics(if_model, rf_model, ae_model, X_test, y_test)
+
+    dataset = "synthetic (sklearn.make_classification)" if is_synthetic else "CICIDS2017"
+    _write_metrics(metrics, dataset=dataset, attack_rate=attack_rate)
 
     logger.info("training_pipeline_complete")
 

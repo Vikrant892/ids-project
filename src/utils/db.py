@@ -80,11 +80,26 @@ CREATE INDEX IF NOT EXISTS idx_net_events_ts      ON network_events(timestamp);
 CREATE INDEX IF NOT EXISTS idx_host_events_ts     ON host_events(timestamp);
 """
 
+def _configure_connection(conn: sqlite3.Connection) -> None:
+    """
+    Apply pragmas the engine and dashboard both depend on.
+
+    WAL journal mode lets the dashboard read concurrently with the engine
+    writing, which the default rollback journal does not — without this,
+    the dashboard stalls during heavy alert ingestion.
+    """
+    conn.execute("PRAGMA journal_mode=WAL")
+    conn.execute("PRAGMA synchronous=NORMAL")  # safe with WAL, faster
+    conn.execute("PRAGMA foreign_keys=ON")
+    conn.execute("PRAGMA busy_timeout=5000")    # block up to 5s on contention
+
+
 def init_db():
     """Create tables and indexes if they don't exist."""
     import os
     os.makedirs(os.path.dirname(config.DB_PATH), exist_ok=True)
     with sqlite3.connect(config.DB_PATH) as conn:
+        _configure_connection(conn)
         conn.executescript(SCHEMA)
         conn.commit()
     logger.info("database_initialised", path=config.DB_PATH)
@@ -94,6 +109,7 @@ def get_db():
     """Thread-safe SQLite connection context manager."""
     with _lock:
         conn = sqlite3.connect(config.DB_PATH, check_same_thread=False)
+        _configure_connection(conn)
         conn.row_factory = sqlite3.Row
         try:
             yield conn

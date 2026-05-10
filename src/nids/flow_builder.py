@@ -87,6 +87,9 @@ class Flow:
             "has_syn":        "S" in self.flags_seen,
             "has_fin":        "F" in self.flags_seen,
             "has_rst":        "R" in self.flags_seen,
+            "has_ack":        "A" in self.flags_seen,
+            "has_psh":        "P" in self.flags_seen,
+            "has_urg":        "U" in self.flags_seen,
             "byte_rate":      self.total_bytes / (self.duration_ms / 1000 + 1e-9),
             "pkt_rate":       self.total_packets / (self.duration_ms / 1000 + 1e-9),
         }

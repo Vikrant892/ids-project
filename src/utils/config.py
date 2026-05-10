@@ -1,12 +1,21 @@
 """
-Centralised settings loader using pydantic-settings pattern with python-dotenv.
-All config is sourced from .env — never hardcode secrets.
+Centralised settings loader using python-dotenv.
+All secrets are sourced from .env or the host environment — never hardcoded.
 """
 import os
 from pathlib import Path
+
 from dotenv import load_dotenv
 
 load_dotenv()
+
+
+def _split_csv(value: str) -> list:
+    """Split a comma-separated env value, dropping empty entries."""
+    if not value:
+        return []
+    return [p.strip() for p in value.split(",") if p.strip()]
+
 
 class Config:
     # Environment
@@ -20,12 +29,21 @@ class Config:
     # Detection thresholds
     ANOMALY_THRESHOLD: float = float(os.getenv("ANOMALY_THRESHOLD", "0.7"))
     RF_CONFIDENCE_THRESHOLD: float = float(os.getenv("RF_CONFIDENCE_THRESHOLD", "0.8"))
-    AUTOENCODER_THRESHOLD: float = float(os.getenv("AUTOENCODER_THRESHOLD", "0.85"))
+    # Autoencoder uses a percentile of training reconstruction errors as the
+    # raw-MSE threshold. The legacy AUTOENCODER_THRESHOLD env var (a normalised-
+    # score cutoff) is no longer consulted — it was dead code.
+    AUTOENCODER_THRESHOLD_PERCENTILE: float = float(
+        os.getenv("AUTOENCODER_THRESHOLD_PERCENTILE", "95.0")
+    )
     ENSEMBLE_VOTE_THRESHOLD: int = int(os.getenv("ENSEMBLE_VOTE_THRESHOLD", "2"))
 
     # HIDS
-    HIDS_LOG_PATHS: list = os.getenv("HIDS_LOG_PATHS", "/var/log/auth.log").split(",")
-    HIDS_WATCH_DIRS: list = os.getenv("HIDS_WATCH_DIRS", "/etc").split(",")
+    # Log paths default empty so the engine doesn't try to tail Linux paths on
+    # Windows (or vice versa). Set explicitly per host. Watch dirs ditto: the
+    # previous default of `data,src` made the IDS alert on its own source edits
+    # and self-DoS via the alert rate-limit.
+    HIDS_LOG_PATHS: list = _split_csv(os.getenv("HIDS_LOG_PATHS", ""))
+    HIDS_WATCH_DIRS: list = _split_csv(os.getenv("HIDS_WATCH_DIRS", ""))
     BASELINE_FILE: str = os.getenv("BASELINE_FILE", "data/baselines/file_hashes.json")
     HIDS_POLL_INTERVAL: int = int(os.getenv("HIDS_POLL_INTERVAL", "30"))
 
@@ -56,6 +74,14 @@ class Config:
     # Logging
     LOG_LEVEL: str = os.getenv("LOG_LEVEL", "INFO")
     LOG_FILE: str = os.getenv("LOG_FILE", "logs/ids.log")
+
+    # Dashboard
+    # Set DASHBOARD_PASSWORD to gate the Streamlit dashboard behind a single
+    # shared password. Empty/unset disables auth (dev only — set in production).
+    DASHBOARD_PASSWORD: str = os.getenv("DASHBOARD_PASSWORD", "")
+    DASHBOARD_DEMO_MODE: bool = os.getenv("DASHBOARD_DEMO_MODE", "false").lower() in (
+        "1", "true", "yes", "on",
+    )
 
     @classmethod
     def ensure_dirs(cls):
