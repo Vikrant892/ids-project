@@ -1,7 +1,7 @@
 """
 Alert Notifiers.
 Three channels:
-  1. Console (always active — structured log)
+  1. Console (always active - structured log)
   2. Email (SMTP, configurable min severity)
   3. Slack webhook (configurable min severity)
 
@@ -52,7 +52,7 @@ def email_notifier(alert: dict):
     subject = f"[IDS {sev}] {alert.get('description', '')[:60]}"
     body = f"""
     <html><body>
-    <h2 style="color:{SEVERITY_COLORS.get(sev,'#333')}">IDS Alert — {sev}</h2>
+    <h2 style="color:{SEVERITY_COLORS.get(sev,'#333')}">IDS Alert - {sev}</h2>
     <table>
       <tr><td><b>Timestamp:</b></td><td>{alert.get('timestamp','')}</td></tr>
       <tr><td><b>Type:</b></td><td>{alert.get('alert_type','')}</td></tr>
@@ -94,7 +94,7 @@ def slack_notifier(alert: dict):
     payload = {
         "attachments": [{
             "color": color,
-            "title": f"IDS Alert — {sev}",
+            "title": f"IDS Alert - {sev}",
             "fields": [
                 {"title": "Type",        "value": alert.get("alert_type", ""),   "short": True},
                 {"title": "Source IP",   "value": alert.get("src_ip", "-"),       "short": True},

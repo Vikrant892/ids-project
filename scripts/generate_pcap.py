@@ -39,40 +39,40 @@ def pkt(src, dst, sport, dport, proto="TCP", flags="S", size=60, icmp_type=None)
     p.time = ts
     return p
 
-# ── Normal traffic ─────────────────────────────────────────────────────────
+# Normal traffic
 print("Generating normal traffic...")
 for i in range(100):
     packets.append(pkt("192.168.1.10", "8.8.8.8",     50000+i, 443,  "TCP", "S"))
     packets.append(pkt("8.8.8.8",      "192.168.1.10", 443,   50000+i, "TCP", "SA"))
     packets.append(pkt("192.168.1.10", "8.8.8.8",     50000+i, 443,  "TCP", "A"))
 
-# ── DNS queries ────────────────────────────────────────────────────────────
+# DNS queries
 for i in range(20):
     packets.append(pkt("192.168.1.10", "8.8.8.8", 54000+i, 53, "UDP", size=40))
     packets.append(pkt("8.8.8.8", "192.168.1.10", 53, 54000+i, "UDP", size=400))
 
-# ── Port scan (triggers PORT_SCAN rule) ────────────────────────────────────
+# Port scan (triggers PORT_SCAN rule)
 print("Generating port scan...")
 for port in range(1, 120):
     packets.append(pkt("10.0.0.99", "192.168.1.1", 60000, port, "TCP", "S"))
 
-# ── SYN flood (triggers SYN_FLOOD rule) ───────────────────────────────────
+# SYN flood (triggers SYN_FLOOD rule)
 print("Generating SYN flood...")
 for i in range(150):
     packets.append(pkt(f"172.16.{i%10}.{i%255}", "192.168.1.100", 60000+i, 80, "TCP", "S"))
 
-# ── Known malicious port (triggers KNOWN_MALICIOUS_PORT) ──────────────────
+# Known malicious port (triggers KNOWN_MALICIOUS_PORT)
 print("Generating C2 traffic...")
 for i in range(5):
     packets.append(pkt("10.0.0.55", "192.168.1.50", 60000+i, 4444, "TCP", "S"))
 
-# ── DNS amplification (triggers DNS_AMPLIFICATION) ────────────────────────
+# DNS amplification (triggers DNS_AMPLIFICATION)
 for i in range(10):
     packets.append(pkt("1.2.3.4", "192.168.1.200", 53, 50000+i, "UDP", size=50))
     for _ in range(20):
         packets.append(pkt("192.168.1.200", "1.2.3.4", 50000+i, 53, "UDP", size=4096))
 
-# ── ICMP sweep ─────────────────────────────────────────────────────────────
+# ICMP sweep
 for i in range(50):
     packets.append(pkt("10.0.0.88", f"192.168.1.{i+1}", 0, 0, "ICMP"))
 

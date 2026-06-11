@@ -32,7 +32,7 @@ ATTACK_SCENARIOS = {
         "severity": "HIGH",
         "mitre_tactic": "Impact",
         "mitre_technique": "T1498.001 - Network DoS: Direct Network Flood",
-        "description": "SYN flood detected — abnormally high SYN rate",
+        "description": "SYN flood detected - abnormally high SYN rate",
     },
     "DATA_EXFILTRATION": {
         "severity": "CRITICAL",

@@ -1,5 +1,5 @@
 """
-Random Forest Classifier — Supervised ML Model.
+Random Forest Classifier - Supervised ML Model.
 Trained on CICIDS2017 labelled network flow dataset.
 Outputs a confidence probability for attack vs benign.
 

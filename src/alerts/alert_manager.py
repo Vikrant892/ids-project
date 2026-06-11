@@ -58,7 +58,7 @@ class AlertManager:
         now = time.time()
 
         with self._lock:
-            # ── Rate limit ──────────────────────────────────────────────────
+            # Rate limit
             self._rate_window = deque(
                 t for t in self._rate_window if now - t < 60
             )
@@ -67,27 +67,27 @@ class AlertManager:
                 return
             self._rate_window.append(now)
 
-            # ── Deduplication ───────────────────────────────────────────────
+            # Deduplication
             fp = _alert_fingerprint(alert)
             last = self._dedup.get(fp, 0)
             if now - last < config.ALERT_DEDUP_WINDOW:
                 return   # Suppress duplicate
             self._dedup[fp] = now
 
-        # ── Enrich with timestamp ────────────────────────────────────────────
+        # Enrich with timestamp
         alert.setdefault("timestamp", datetime.utcnow().isoformat())
         alert.setdefault("severity", "LOW")
         alert.setdefault("alert_type", "UNKNOWN")
         alert.setdefault("notified", 0)
 
-        # ── Persist ──────────────────────────────────────────────────────────
+        # Persist
         try:
             alert_id = insert_alert(alert)
             alert["id"] = alert_id
         except Exception as e:
             logger.error("alert_persist_failed", error=str(e))
 
-        # ── Log ──────────────────────────────────────────────────────────────
+        # Log
         logger.warning(
             "alert_raised",
             severity=alert.get("severity"),
@@ -97,7 +97,7 @@ class AlertManager:
             description=alert.get("description", "")[:100],
         )
 
-        # ── Notify ───────────────────────────────────────────────────────────
+        # Notify
         for notifier in self._notifiers:
             try:
                 notifier(alert)

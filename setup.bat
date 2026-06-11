@@ -1,6 +1,6 @@
 @echo off
 echo ============================================
-echo  Hybrid ML IDS — Windows Setup
+echo  Hybrid ML IDS - Windows Setup
 echo ============================================
 
 python --version 2>nul

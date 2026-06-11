@@ -14,11 +14,11 @@ def setup_logging():
 
     log_level = getattr(logging, config.LOG_LEVEL.upper(), logging.INFO)
 
-    # Standard library handler — file
+    # Standard library handler - file
     file_handler = logging.FileHandler(config.LOG_FILE)
     file_handler.setLevel(log_level)
 
-    # Standard library handler — console
+    # Standard library handler - console
     console_handler = logging.StreamHandler(sys.stdout)
     console_handler.setLevel(log_level)
 

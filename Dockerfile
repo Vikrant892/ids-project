@@ -1,7 +1,7 @@
 # Hugging Face Spaces / generic container image for the IDS dashboard.
 # Designed to run the Streamlit dashboard in demo mode against a bundled
 # sample dataset. Live packet capture is not available inside an HF Space
-# (no host network access) — set DASHBOARD_DEMO_MODE=true in the Space's
+# (no host network access) - set DASHBOARD_DEMO_MODE=true in the Space's
 # Variables tab.
 FROM python:3.11-slim
 
@@ -24,7 +24,7 @@ WORKDIR /app
 # Install Python deps first so layer cache survives source edits
 COPY requirements_local.txt /app/requirements_local.txt
 # Install CPU-only torch wheel to keep image size and cold-start sane on free
-# tier — the Spaces free CPU tier doesn't have a GPU anyway.
+# tier - the Spaces free CPU tier doesn't have a GPU anyway.
 RUN pip install --extra-index-url https://download.pytorch.org/whl/cpu \
         torch==2.6.0+cpu \
     && pip install -r requirements_local.txt
@@ -56,7 +56,7 @@ EXPOSE 7860
 
 # Point Streamlit directly at the dashboard module. The streamlit_app.py shim
 # at the repo root uses importlib.import_module() which only executes the
-# dashboard's top-level render code ONCE on first import — Streamlit's rerun
+# dashboard's top-level render code ONCE on first import - Streamlit's rerun
 # model needs the script to re-execute on every interaction, so the shim
 # leaves the iframe blank after the first paint. Bypassing it fixes this.
 CMD ["streamlit", "run", "src/dashboard/app.py", "--server.port=7860", "--server.address=0.0.0.0", "--server.enableXsrfProtection=false"]

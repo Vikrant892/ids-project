@@ -85,7 +85,7 @@ def _configure_connection(conn: sqlite3.Connection) -> None:
     Apply pragmas the engine and dashboard both depend on.
 
     WAL journal mode lets the dashboard read concurrently with the engine
-    writing, which the default rollback journal does not — without this,
+    writing, which the default rollback journal does not - without this,
     the dashboard stalls during heavy alert ingestion.
     """
     conn.execute("PRAGMA journal_mode=WAL")

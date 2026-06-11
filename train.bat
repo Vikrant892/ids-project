@@ -1,6 +1,6 @@
 @echo off
 echo ============================================
-echo  IDS — ML Training Pipeline
+echo  IDS - ML Training Pipeline
 echo ============================================
 call venv\Scripts\activate.bat
 echo.

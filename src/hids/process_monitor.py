@@ -24,10 +24,10 @@ TRUSTED_PARENTS = {
     "python3", "python", "docker", "containerd",
 }
 
-# Shells — unexpected spawning of these is suspicious
+# Shells - unexpected spawning of these is suspicious
 SHELL_NAMES = {"bash", "sh", "zsh", "fish", "dash", "ksh", "tcsh", "csh"}
 
-# Web servers / app servers — should not spawn shells
+# Web servers / app servers - should not spawn shells
 HIGH_RISK_PARENTS = {"nginx", "apache2", "httpd", "php-fpm", "node", "java", "ruby"}
 
 # Suspicious process names
@@ -128,7 +128,7 @@ class ProcessMonitor:
                         pid=pid, process_name=name, parent_pid=ppid,
                         parent_name=parent_name, cmdline=cmdline,
                         description=(
-                            f"Shell '{name}' spawned by web process '{parent_name}' — "
+                            f"Shell '{name}' spawned by web process '{parent_name}' - "
                             f"possible RCE (pid={pid})"
                         ),
                         severity="CRITICAL",

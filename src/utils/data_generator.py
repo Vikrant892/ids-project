@@ -1,12 +1,12 @@
 """
 data_generator.py
-─────────────────
+
 Generates synthetic network flows and syslog entries for testing.
 Run: python -m src.utils.data_generator
 Produces:
-  data/sample/synthetic_flows.csv   — labelled network flows
-  data/sample/synthetic_auth.log    — fake auth.log entries
-  data/pcap/test_traffic.pcap       — basic PCAP for NIDS replay
+  data/sample/synthetic_flows.csv   - labelled network flows
+  data/sample/synthetic_auth.log    - fake auth.log entries
+  data/pcap/test_traffic.pcap       - basic PCAP for NIDS replay
 """
 
 import csv
@@ -180,12 +180,12 @@ def generate_file_baseline(
     import hashlib
     baseline = {}
     for path in paths:
-        # Fake hash — in real use, file_integrity.py reads actual files
-        fake_hash = hashlib.sha256(
+        # Synthetic baseline digest; file_integrity.py hashes real files at runtime.
+        synthetic_hash = hashlib.sha256(
             (path + str(random.random())).encode()
         ).hexdigest()
         baseline[path] = {
-            "sha256": fake_hash,
+            "sha256": synthetic_hash,
             "size": random.randint(1000, 500000),
             "modified": datetime.now().isoformat(),
         }

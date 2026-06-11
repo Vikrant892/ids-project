@@ -13,7 +13,7 @@ from src.utils.logger import get_logger
 
 logger = get_logger(__name__)
 
-FLOW_TIMEOUT = 60       # seconds — idle timeout
+FLOW_TIMEOUT = 60       # seconds - idle timeout
 MAX_FLOW_PACKETS = 1000 # cap to prevent memory exhaustion
 
 

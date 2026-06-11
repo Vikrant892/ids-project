@@ -1,11 +1,11 @@
-# 🛡️ Hybrid ML IDS — No Docker Setup
+# 🛡️ Hybrid ML IDS - No Docker Setup
 
 Runs natively on Windows with Python venv. No Docker required.
 
 ## Quick Start (Windows)
 
 ### 1. Install Python 3.11+
-Download from https://python.org — check "Add to PATH" during install.
+Download from https://python.org - check "Add to PATH" during install.
 
 ### 2. Clone repo
 ```
@@ -28,7 +28,7 @@ generate_test_pcap.bat
 ```
 train.bat
 ```
-Takes 5–10 minutes. Auto-generates synthetic data if `data/raw/` is empty.
+Takes 5-10 minutes. Auto-generates synthetic data if `data/raw/` is empty.
 For real results, download CICIDS2017 CSVs → place in `data/raw/`.
 
 ### 6. Start IDS engine (Terminal 1)
@@ -90,7 +90,7 @@ Deploy dashboard to Streamlit Cloud:
 2. Go to https://share.streamlit.io
 3. New app → select repo → main file = `src/dashboard/app.py`
 4. Add `.env` values as Secrets in the Streamlit Cloud UI
-5. Deploy — get a public URL instantly
+5. Deploy - get a public URL instantly
 
 ---
 
@@ -102,8 +102,8 @@ Deploy dashboard to Streamlit Cloud:
 | Live capture permission denied | Run `start.bat` as Administrator |
 | `No module named src` | Run from inside `ids-project\` folder |
 | Models not found | Run `train.bat` first |
-| Port 8501 in use | Edit `dashboard.bat` — change `--server.port=8501` to `8502` |
-| Torch install slow | Normal — PyTorch is 2GB. Wait it out. |
+| Port 8501 in use | Edit `dashboard.bat` - change `--server.port=8501` to `8502` |
+| Torch install slow | Normal - PyTorch is 2GB. Wait it out. |
 
 ---
 

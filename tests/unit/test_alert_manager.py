@@ -1,4 +1,4 @@
-"""Unit tests — Alert Manager (deduplication + rate limiting)"""
+"""Unit tests - Alert Manager (deduplication + rate limiting)"""
 import sys
 import os
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "../.."))
@@ -37,7 +37,7 @@ class TestAlertManager:
         mgr.register_notifier(lambda a: received.append(a))
         alert = make_alert()
         mgr.process(alert)
-        mgr.process(alert)   # Identical — should be suppressed
+        mgr.process(alert)   # Identical - should be suppressed
         assert len(received) == 1
 
     @mock.patch("src.utils.db.insert_alert", return_value=1)

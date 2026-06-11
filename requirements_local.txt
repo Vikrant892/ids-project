@@ -2,7 +2,7 @@
 scapy==2.6.1
 psutil==6.1.1
 
-# ML — versions compatible with Python 3.13
+# ML - versions compatible with Python 3.13
 scikit-learn==1.6.1
 numpy==2.2.3
 pandas==2.2.3

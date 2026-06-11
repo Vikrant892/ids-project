@@ -1,5 +1,5 @@
 """
-Autoencoder — Deep Anomaly Detector.
+Autoencoder - Deep Anomaly Detector.
 Trained on benign traffic only. Reconstruction error on attack traffic
 is significantly higher than benign, enabling detection.
 
@@ -180,7 +180,7 @@ class AutoencoderModel:
         if ckpt.get("input_dim", NUM_FEATURES) != NUM_FEATURES:
             raise RuntimeError(
                 f"Autoencoder checkpoint expects input_dim={ckpt.get('input_dim')} "
-                f"but feature schema has NUM_FEATURES={NUM_FEATURES} — retrain."
+                f"but feature schema has NUM_FEATURES={NUM_FEATURES} - retrain."
             )
         self.net = _AutoencoderNet(ckpt["input_dim"]).to(DEVICE)
         self.net.load_state_dict(ckpt["state_dict"])

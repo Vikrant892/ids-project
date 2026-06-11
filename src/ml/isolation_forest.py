@@ -1,5 +1,5 @@
 """
-Isolation Forest — Unsupervised Anomaly Detector.
+Isolation Forest - Unsupervised Anomaly Detector.
 No labelled data required. Useful for zero-day / novel attack detection.
 Trained on BENIGN traffic only; anomaly score = how isolated a point is.
 """

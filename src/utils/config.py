@@ -1,6 +1,6 @@
 """
 Centralised settings loader using python-dotenv.
-All secrets are sourced from .env or the host environment — never hardcoded.
+All secrets are sourced from .env or the host environment - never hardcoded.
 """
 import os
 from pathlib import Path
@@ -31,7 +31,7 @@ class Config:
     RF_CONFIDENCE_THRESHOLD: float = float(os.getenv("RF_CONFIDENCE_THRESHOLD", "0.8"))
     # Autoencoder uses a percentile of training reconstruction errors as the
     # raw-MSE threshold. The legacy AUTOENCODER_THRESHOLD env var (a normalised-
-    # score cutoff) is no longer consulted — it was dead code.
+    # score cutoff) is no longer consulted - it was dead code.
     AUTOENCODER_THRESHOLD_PERCENTILE: float = float(
         os.getenv("AUTOENCODER_THRESHOLD_PERCENTILE", "95.0")
     )
@@ -76,8 +76,7 @@ class Config:
     LOG_FILE: str = os.getenv("LOG_FILE", "logs/ids.log")
 
     # Dashboard
-    # Set DASHBOARD_PASSWORD to gate the Streamlit dashboard behind a single
-    # shared password. Empty/unset disables auth (dev only — set in production).
+    # Password gate for the dashboard; blank disables the login.
     DASHBOARD_PASSWORD: str = os.getenv("DASHBOARD_PASSWORD", "")
     DASHBOARD_DEMO_MODE: bool = os.getenv("DASHBOARD_DEMO_MODE", "false").lower() in (
         "1", "true", "yes", "on",

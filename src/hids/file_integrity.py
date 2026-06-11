@@ -55,7 +55,7 @@ def sha256_file(path: str) -> Optional[str]:
 def build_baseline(watch_dirs: List[str]) -> Dict[str, str]:
     """
     Recursively scan directories and build {filepath: sha256} baseline.
-    Skips unreadable files — logs a warning for each.
+    Skips unreadable files - logs a warning for each.
     """
     baseline = {}
     for d in watch_dirs:

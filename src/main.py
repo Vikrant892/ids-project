@@ -82,22 +82,22 @@ def main():
     config.ensure_dirs()
     init_db()
 
-    # ── Alert Manager ────────────────────────────────────────────────────────
+    # Alert Manager
     alert_mgr = AlertManager()
     for notifier in get_all_notifiers():
         alert_mgr.register_notifier(notifier)
 
-    # ── ML Inference Engine ──────────────────────────────────────────────────
+    # ML Inference Engine
     inference = InferenceEngine(alert_callback=alert_mgr.process)
     try:
         inference.load()
     except Exception as e:
         logger.warning("models_not_loaded_running_without_ml", error=str(e))
 
-    # ── Signature Engine ─────────────────────────────────────────────────────
+    # Signature Engine
     sig_engine = SignatureEngine()
 
-    # ── NIDS Pipeline ────────────────────────────────────────────────────────
+    # NIDS Pipeline
     def on_flow_complete(flow: dict):
         """Called by FlowBuilder when a flow is ready for analysis."""
         # 1. Signature check (fast path)
@@ -128,7 +128,7 @@ def main():
     capture = PacketCapture(callback=flow_builder.process_packet)
     _components.append(capture)
 
-    # ── HIDS Pipeline ────────────────────────────────────────────────────────
+    # HIDS Pipeline
     def on_hids_event(event):
         alert = build_hids_alert(event, getattr(event, "event_type", "UNKNOWN"))
         alert_mgr.process(alert)
@@ -150,7 +150,7 @@ def main():
     proc_monitor = ProcessMonitor(callback=on_hids_event)
     _components.extend([log_parser, fim, proc_monitor])
 
-    # ── Signal Handlers ──────────────────────────────────────────────────────
+    # Signal Handlers
     def shutdown(sig, frame):
         logger.info("ids_shutting_down")
         for c in _components:
@@ -161,7 +161,7 @@ def main():
     signal.signal(signal.SIGINT, shutdown)
     signal.signal(signal.SIGTERM, shutdown)
 
-    # ── Start All Components ─────────────────────────────────────────────────
+    # Start All Components
     log_parser.start()
     fim.start()
     proc_monitor.start()

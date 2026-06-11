@@ -144,7 +144,7 @@ def preprocess(df: pd.DataFrame) -> tuple:
     }
     # Sanity-check ordering
     assert list(columns.keys()) == FEATURE_NAMES, (
-        "Training feature order does not match FEATURE_NAMES — would cause "
+        "Training feature order does not match FEATURE_NAMES - would cause "
         "silent training/inference schema drift."
     )
 
@@ -265,21 +265,21 @@ def main():
 
     metrics: dict = {}
 
-    # ── Isolation Forest (unsupervised — train on benign only) ──────────────
+    # Isolation Forest (unsupervised - train on benign only)
     logger.info("training_isolation_forest", fast=fast)
     if_model = IFModel(contamination=0.05, n_estimators=80 if fast else 200)
     if_model.fit(X_benign_train)
     metrics["isolation_forest"] = evaluate_model(if_model, X_test, y_test, "Isolation Forest")
     if_model.save()
 
-    # ── Random Forest (supervised) ──────────────────────────────────────────
+    # Random Forest (supervised)
     logger.info("training_random_forest", n_estimators=rf_n)
     rf_model = RFModel(n_estimators=rf_n)
     rf_model.fit(X_train, y_train)
     metrics["random_forest"] = evaluate_model(rf_model, X_test, y_test, "Random Forest")
     rf_model.save()
 
-    # ── Autoencoder (unsupervised — train on benign only) ───────────────────
+    # Autoencoder (unsupervised - train on benign only)
     logger.info("training_autoencoder", epochs=ae_ep)
     ae_model = AutoencoderModel(input_dim=NUM_FEATURES, epochs=ae_ep)
     ae_model.fit(X_benign_train)

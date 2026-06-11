@@ -1,4 +1,4 @@
-"""Unit tests — Feature Extractor"""
+"""Unit tests - Feature Extractor"""
 import numpy as np
 import sys
 import os

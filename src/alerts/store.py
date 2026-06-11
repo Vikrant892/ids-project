@@ -1,5 +1,5 @@
 """
-Alert Store helpers — convenience wrappers over db.py for the dashboard.
+Alert Store helpers - convenience wrappers over db.py for the dashboard.
 """
 from src.utils.db import get_recent_alerts, get_alert_counts_by_severity, get_db
 

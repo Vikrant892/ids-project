@@ -14,7 +14,7 @@ import math
 import numpy as np
 from typing import Dict, Any
 
-# Ordered list — model expects this EXACT order
+# Ordered list - model expects this EXACT order
 FEATURE_NAMES = [
     "duration_ms",
     "total_packets",
@@ -49,7 +49,7 @@ def extract_features(flow: Dict[str, Any]) -> np.ndarray:
     """
     Convert a flow dict to a numeric feature vector.
     Returns np.ndarray of shape (NUM_FEATURES,).
-    Never raises — missing fields default to 0.
+    Never raises - missing fields default to 0.
     """
     def safe(key, default=0):
         return flow.get(key, default) or default

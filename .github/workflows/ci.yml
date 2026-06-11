@@ -26,7 +26,7 @@ jobs:
           cache: pip
       - run: pip install ruff==0.9.10
       # Lint failures now block the build. Tweak the ignore list as needed,
-      # but do not re-add `|| true` or `continue-on-error: true` — that just
+      # but do not re-add `|| true` or `continue-on-error: true` - that just
       # papers over real issues.
       # Ignored rules:
       #   E501 long lines, E401/F401 unused imports (intentional re-exports),

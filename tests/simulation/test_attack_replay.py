@@ -1,5 +1,5 @@
 """
-Simulation tests — Replay known attack patterns.
+Simulation tests - Replay known attack patterns.
 Verifies that known attacks are detected at expected severity levels.
 These tests use the full signature engine with realistic flow data.
 """

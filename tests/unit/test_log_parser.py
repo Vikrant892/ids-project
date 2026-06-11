@@ -1,4 +1,4 @@
-"""Unit tests — HIDS Log Parser"""
+"""Unit tests - HIDS Log Parser"""
 import pytest
 import sys
 import os

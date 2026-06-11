@@ -1,4 +1,4 @@
-# IDS Runbook — Operations & Incident Response
+# IDS Runbook - Operations & Incident Response
 
 ## 1. Daily Health Checks
 ```bash

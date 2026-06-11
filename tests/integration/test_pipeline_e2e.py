@@ -1,5 +1,5 @@
 """
-Integration test — Full NIDS pipeline (without real packets).
+Integration test - Full NIDS pipeline (without real packets).
 Simulates: flow dict → feature extraction → signature engine → alert manager.
 """
 import sys
