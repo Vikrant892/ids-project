@@ -1,113 +1,131 @@
-# 🛡️ Hybrid ML IDS - No Docker Setup
+# Hybrid ML Intrusion Detection System
 
-Runs natively on Windows with Python venv. No Docker required.
+Real-time intrusion detection that combines network and host monitoring with a four-model machine learning ensemble, and maps every alert to a MITRE ATT&CK technique so triage takes seconds instead of minutes.
 
-## Quick Start (Windows)
+[**Live demo**](https://huggingface.co/spaces/vikrant892/ids-project) · [Runbook](docs/runbook.md) · [MITRE mapping](docs/mitre_mapping.md)
 
-### 1. Install Python 3.11+
-Download from https://python.org - check "Add to PATH" during install.
+---
 
-### 2. Clone repo
+## Why this exists
+
+Most detection tools give you an alert and leave you to work out what it means. Signature engines miss anything they have not seen before, and pure anomaly detection drowns you in false positives. This system runs both, then labels the result with the ATT&CK technique it corresponds to, so an analyst opens an alert already knowing what class of attack they are looking at.
+
+## What it does
+
+- **Network detection (NIDS)** — live packet capture, flow reconstruction and signature matching
+- **Host detection (HIDS)** — log parsing, file integrity monitoring and process monitoring
+- **Four-model ML ensemble** — Isolation Forest, Random Forest and an Autoencoder, combined by an ensemble scorer
+- **ATT&CK mapping** — 12 techniques covered, from port scans to sudo abuse
+- **Alerting** — email and Slack notifiers with a structured alert manager
+- **Streamlit dashboard** — live alert feed backed by SQLite
+
+## Architecture
+
+```mermaid
+flowchart LR
+    A[Live traffic / PCAP] --> B[Packet capture]
+    B --> C[Flow builder]
+    C --> D[Signature engine]
+    C --> E[Feature extraction]
+    F[System logs / FIM / processes] --> G[Host collectors]
+    G --> E
+    E --> H{ML ensemble}
+    H --> H1[Isolation Forest]
+    H --> H2[Random Forest]
+    H --> H3[Autoencoder]
+    H1 --> I[Ensemble scorer]
+    H2 --> I
+    H3 --> I
+    D --> J[Alert manager]
+    I --> J
+    J --> K[ATT&CK mapping]
+    K --> L[(SQLite)]
+    K --> M[Email / Slack]
+    L --> N[Streamlit dashboard]
 ```
+
+## Detection coverage
+
+| Technique | Name | Layer |
+|---|---|---|
+| T1046 | Network Service Discovery (port scan) | Network |
+| T1499 | Endpoint Denial of Service (SYN flood) | Network |
+| T1498 | Network Denial of Service (ICMP flood) | Network |
+| T1498.002 | Reflection Amplification (DNS) | Network |
+| T1071 | Application Layer Protocol (C2 ports) | Network |
+| T1190 | Exploit Public-Facing Application | Network |
+| T1110 | Brute Force | Network |
+| T1110.001 | Password Guessing (SSH) | Network |
+| T1548.003 | Sudo and Sudo Caching Abuse | Host |
+| T1136 | Create Account | Host |
+| T1565 | Data Manipulation (file tampering) | Host |
+| T1059 | Command and Scripting Interpreter | Host |
+
+## Results
+
+Models are evaluated on [CICIDS2017](https://www.unb.ca/cic/datasets/ids-2017.html) with a held-out test split. `src/ml/train.py` reports precision, recall, F1 and ROC-AUC per model plus the ensemble.
+
+| Model | Precision | Recall | F1 | ROC-AUC |
+|---|---|---|---|---|
+| Isolation Forest | — | — | — | — |
+| Random Forest | — | — | — | — |
+| Autoencoder | — | — | — | — |
+| **Ensemble** | — | — | — | — |
+
+Reproduce with `train.bat`, then paste the reported figures above.
+
+> Training falls back to synthetic data when `data/raw/` is empty. Synthetic runs are for smoke-testing the pipeline only — download the CICIDS2017 CSVs into `data/raw/` for meaningful numbers.
+
+## Tech stack
+
+Python 3.11 · scikit-learn · PyTorch · Scapy · Streamlit · SQLite · pytest
+
+## Quick start
+
+Windows, no Docker required.
+
+```bash
 git clone https://github.com/Vikrant892/ids-project.git
 cd ids-project
+setup.bat                  # venv, dependencies, database init
+generate_test_pcap.bat     # synthetic PCAP if you have no live traffic
+train.bat                  # train the ensemble (5-10 min)
+start.bat                  # run the IDS engine (Administrator for live capture)
+dashboard.bat              # dashboard at http://localhost:8501
+test.bat                   # unit, integration and simulation tests
 ```
 
-### 3. Run setup (one time only)
-```
-setup.bat
-```
-This creates a venv, installs all dependencies, and initialises the database.
+For real results, place the CICIDS2017 CSVs in `data/raw/` before running `train.bat`.
 
-### 4. Generate test PCAP (for demo without live traffic)
-```
-generate_test_pcap.bat
-```
+## Project layout
 
-### 5. Train ML models
 ```
-train.bat
+src/
+├── nids/        packet capture, flow builder, signatures
+├── hids/        log parser, file integrity monitoring, process monitor
+├── ml/          Isolation Forest, Random Forest, Autoencoder, ensemble
+├── alerts/      alert manager, email and Slack notifiers
+├── dashboard/   Streamlit app
+└── utils/       config, database, logging
+tests/           unit, integration, simulation
+docs/            runbook, MITRE mapping
 ```
-Takes 5-10 minutes. Auto-generates synthetic data if `data/raw/` is empty.
-For real results, download CICIDS2017 CSVs → place in `data/raw/`.
-
-### 6. Start IDS engine (Terminal 1)
-```
-start.bat
-```
-Processes PCAP by default. For live capture, run as Administrator.
-
-### 7. Open dashboard (Terminal 2)
-```
-dashboard.bat
-```
-Opens at http://localhost:8501
-
-### 8. Run tests
-```
-test.bat
-```
-
----
-
-## Project Structure
-```
-ids-project/
-├── setup.bat              ← Run first (one time)
-├── train.bat              ← Train ML models
-├── start.bat              ← Start IDS engine
-├── dashboard.bat          ← Open Streamlit dashboard
-├── test.bat               ← Run all tests
-├── generate_test_pcap.bat ← Make synthetic test PCAP
-├── .env.example           ← Copy to .env and configure
-├── requirements.txt
-├── src/
-│   ├── main.py            ← Entry point
-│   ├── nids/              ← Packet capture, flow builder, signatures
-│   ├── hids/              ← Log parser, FIM, process monitor
-│   ├── ml/                ← Isolation Forest, Random Forest, Autoencoder, Ensemble
-│   ├── alerts/            ← Alert manager, Email/Slack notifiers
-│   ├── dashboard/         ← Streamlit app
-│   └── utils/             ← Config, DB, logging
-├── tests/
-│   ├── unit/
-│   ├── integration/
-│   └── simulation/
-├── data/
-│   ├── raw/               ← Place CICIDS2017 CSVs here
-│   ├── pcap/              ← PCAP files for testing
-│   └── baselines/         ← FIM hash baselines
-├── db/                    ← SQLite database
-└── logs/                  ← Structured JSON logs
-```
-
----
-
-## Free Hosting (Dashboard)
-
-Deploy dashboard to Streamlit Cloud:
-1. Push to GitHub
-2. Go to https://share.streamlit.io
-3. New app → select repo → main file = `src/dashboard/app.py`
-4. Add `.env` values as Secrets in the Streamlit Cloud UI
-5. Deploy - get a public URL instantly
-
----
 
 ## Troubleshooting
 
 | Problem | Fix |
 |---|---|
-| `scapy` install fails | Run: `pip install scapy --pre` |
+| `scapy` install fails | `pip install scapy --pre` |
 | Live capture permission denied | Run `start.bat` as Administrator |
-| `No module named src` | Run from inside `ids-project\` folder |
+| `No module named src` | Run from inside the `ids-project` folder |
 | Models not found | Run `train.bat` first |
-| Port 8501 in use | Edit `dashboard.bat` - change `--server.port=8501` to `8502` |
-| Torch install slow | Normal - PyTorch is 2GB. Wait it out. |
+| Port 8501 in use | Change `--server.port` in `dashboard.bat` |
+| Torch install slow | Expected, PyTorch is around 2GB |
+
+## Licence
+
+MIT — see [LICENSE](LICENSE).
 
 ---
 
-## MITRE ATT&CK Coverage
-T1046 Port Scan · T1499 SYN Flood · T1498 ICMP Flood · T1498.002 DNS Amplification
-T1071 C2 Ports · T1190 Sensitive Port Access · T1110 Brute Force · T1110.001 SSH BF
-T1548.003 Sudo Abuse · T1136 Account Creation · T1565 File Tampering · T1059 Shell Spawn
+Built by [Vikrant Sharma](https://vikrant69g.com) · Master of Information and Communication Technology, University of the Sunshine Coast
