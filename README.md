@@ -61,20 +61,21 @@ flowchart LR
 | T1565 | Data Manipulation (file tampering) | Host |
 | T1059 | Command and Scripting Interpreter | Host |
 
-## Results
+## Evaluation
 
-Models are evaluated on [CICIDS2017](https://www.unb.ca/cic/datasets/ids-2017.html) with a held-out test split. `src/ml/train.py` reports precision, recall, F1 and ROC-AUC per model plus the ensemble.
+Models are evaluated against [CICIDS2017](https://www.unb.ca/cic/datasets/ids-2017.html) on a held-out test split. `src/ml/train.py` reports precision, recall, F1 and ROC-AUC for each of the three models and for the combined ensemble, using `sklearn.metrics` with the attack class as the positive label.
 
-| Model | Precision | Recall | F1 | ROC-AUC |
-|---|---|---|---|---|
-| Isolation Forest | — | — | — | — |
-| Random Forest | — | — | — | — |
-| Autoencoder | — | — | — | — |
-| **Ensemble** | — | — | — | — |
+To reproduce:
 
-Reproduce with `train.bat`, then paste the reported figures above.
+```bash
+# 1. Download the CICIDS2017 CSVs and place them in data/raw/
+# 2. Train and evaluate
+train.bat
+```
 
-> Training falls back to synthetic data when `data/raw/` is empty. Synthetic runs are for smoke-testing the pipeline only — download the CICIDS2017 CSVs into `data/raw/` for meaningful numbers.
+The classification report and ROC-AUC for every model print to stdout at the end of training.
+
+> **On synthetic data:** if `data/raw/` is empty, training generates synthetic traffic so the pipeline can be smoke-tested end to end. Those runs verify that the plumbing works — they are not a measure of detection quality, and the scores they produce should not be quoted as such. Use the real CICIDS2017 CSVs for any figure you intend to rely on.
 
 ## Tech stack
 
